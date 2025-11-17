@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Permissões necessárias para funcionalidade do GeoPing -->
+    
+    <!-- Permissão para acessar a internet (Socket.IO) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Permissões para acessar informações de Wi-Fi -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    
+    <!-- Permissões de localização necessárias para escaneamento de Wi-Fi no Android 8.0+ -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    
+    <!-- Permissão para rodar serviço em foreground (Android 9.0+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+        
+        <!-- Activity Principal -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+        <!-- Serviço de Proximidade Wi-Fi -->
+        <service
+            android:name=".services.WifiProximityService"
+            android:enabled="true"
+            android:exported="false" />
+        
+    </application>
+
+</manifest>
+

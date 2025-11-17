@@ -1,0 +1,207 @@
+ESTRUTURA COMPLETA DO PROJETO GEOPING
+═══════════════════════════════════════════════════════════════
+
+geoping/
+│
+├── 📱 app/                                    # Módulo principal do Android
+│   ├── 🔧 build.gradle                        # Configuração de build do módulo
+│   ├── 🛡️ proguard-rules.pro                 # Regras de ofuscação
+│   │
+│   └── 📂 src/
+│       └── 📂 main/
+│           ├── 📄 AndroidManifest.xml         # Manifest com permissões e componentes
+│           │
+│           ├── 📂 java/com/geoping/           # Código-fonte Java
+│           │   │
+│           │   ├── 📦 model/                  # Camada de Dados
+│           │   │   └── 💾 ChatMessage.java    # Modelo de mensagem de chat
+│           │   │
+│           │   ├── 📦 viewmodel/              # Camada MVVM
+│           │   │   └── 🎯 ChatViewModel.java  # ViewModel do chat (lógica UI)
+│           │   │
+│           │   ├── 📦 services/               # Serviços de Background
+│           │   │   ├── 🔌 SocketManager.java  # Singleton Socket.IO
+│           │   │   └── 📡 WifiProximityService.java  # Serviço de detecção Wi-Fi
+│           │   │
+│           │   └── 📦 ui/                     # Interface do Usuário
+│           │       ├── 📱 MainActivity.java   # Activity principal
+│           │       └── 🎨 ChatAdapter.java    # Adapter do RecyclerView
+│           │
+│           └── 📂 res/                        # Recursos Android
+│               │
+│               ├── 📂 drawable/               # Recursos gráficos
+│               │   ├── 🎨 circle_shape.xml                 # Indicador circular
+│               │   ├── 🎨 message_input_background.xml     # Fundo do input
+│               │   ├── 🎨 message_bubble_own.xml           # Bolha própria
+│               │   ├── 🎨 message_bubble_other.xml         # Bolha de outros
+│               │   └── 🎨 message_bubble_system.xml        # Bolha do sistema
+│               │
+│               ├── 📂 layout/                 # Layouts XML
+│               │   ├── 📐 activity_main.xml   # Layout da tela principal
+│               │   └── 📐 item_message.xml    # Layout de item de mensagem
+│               │
+│               └── 📂 values/                 # Valores e recursos
+│                   ├── 🎨 colors.xml          # Paleta de cores
+│                   └── 📝 strings.xml         # Strings do app
+│
+├── 🔧 Arquivos de Configuração Gradle
+│   ├── build.gradle                           # Build do projeto raiz
+│   ├── settings.gradle                        # Configurações de módulos
+│   ├── gradle.properties                      # Propriedades do Gradle
+│   └── 📂 gradle/wrapper/
+│       └── gradle-wrapper.properties          # Configuração do Gradle Wrapper
+│
+├── ⚙️ Configuração Local
+│   ├── local.properties                       # SDK path (específico da máquina)
+│   └── .gitignore                            # Arquivos ignorados pelo Git
+│
+├── 📚 Documentação
+│   ├── 📖 README.md                          # Documentação principal completa
+│   ├── 📖 GUIA_RAPIDO.md                     # Guia rápido de uso
+│   ├── 📖 RESUMO_IMPLEMENTACAO.md            # Resumo do que foi implementado
+│   ├── 📖 ESTRUTURA_PROJETO.txt              # Este arquivo
+│   └── 📄 prompt.md                          # Prompt original do projeto
+│
+├── 🖥️ Servidor Socket.IO (Exemplo)
+│   └── 📂 server-exemplo/
+│       ├── 🟢 server.js                      # Código do servidor Node.js
+│       ├── 📦 package.json                   # Dependências Node.js
+│       └── 📖 README.md                      # Documentação do servidor
+│
+└── 🛠️ Scripts Utilitários
+    └── 🔧 build-and-install.ps1              # Script PowerShell para build
+
+═══════════════════════════════════════════════════════════════
+
+LEGENDA:
+  📱 = Aplicação Android
+  📦 = Pacote Java
+  💾 = Modelo de Dados
+  🎯 = ViewModel (MVVM)
+  🔌 = Gerenciador de Conexão
+  📡 = Serviço de Background
+  📱 = Activity
+  🎨 = Adapter/Drawable
+  📐 = Layout XML
+  🔧 = Configuração
+  📖 = Documentação
+  🟢 = Servidor Node.js
+  🛠️ = Script/Utilitário
+
+═══════════════════════════════════════════════════════════════
+
+COMPONENTES PRINCIPAIS:
+
+┌─────────────────────────────────────────────────────────────┐
+│                      ARQUITETURA MVVM                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  UI Layer (View)                                            │
+│  ├── MainActivity.java          (Interface do usuário)      │
+│  └── ChatAdapter.java           (Adapter do RecyclerView)   │
+│                                                              │
+│  ViewModel Layer                                            │
+│  └── ChatViewModel.java         (Lógica de negócio da UI)   │
+│                                                              │
+│  Model Layer                                                │
+│  └── ChatMessage.java           (Modelo de dados)           │
+│                                                              │
+│  Services Layer                                             │
+│  ├── SocketManager.java         (Socket.IO - Singleton)     │
+│  └── WifiProximityService.java  (Detecção Wi-Fi)           │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════
+
+FLUXO DE DADOS:
+
+  Usuario Interação
+        ↓
+  MainActivity (UI)
+        ↓
+  ChatViewModel (ViewModel)
+        ↓
+  SocketManager (Service) ←→ Servidor Socket.IO
+        ↓
+  ChatMessage (Model)
+        ↓
+  LiveData Observable
+        ↓
+  MainActivity (UI Update)
+
+
+  Detecção Wi-Fi:
+  
+  WifiProximityService (Background)
+        ↓
+  WifiManager.startScan()
+        ↓
+  BroadcastReceiver (Resultados)
+        ↓
+  Lógica de Histerese (-75dBm/-85dBm)
+        ↓
+  SocketManager.joinRoom() / leaveRoom()
+        ↓
+  LiveData Update
+        ↓
+  ChatViewModel → MainActivity
+
+═══════════════════════════════════════════════════════════════
+
+ARQUIVOS CRÍTICOS PARA CONFIGURAÇÃO:
+
+1. SocketManager.java (linha 33)
+   → SERVER_URL = "http://SEU_IP_AQUI:3000"
+
+2. WifiProximityService.java (linha 51-53)
+   → TARGET_SSID = "GP_Lab"
+   → THRESHOLD_ENTER = -75
+   → THRESHOLD_EXIT = -85
+
+3. local.properties
+   → sdk.dir = C:\\Users\\SEU_USUARIO\\AppData\\Local\\Android\\Sdk
+
+═══════════════════════════════════════════════════════════════
+
+DEPENDÊNCIAS PRINCIPAIS:
+
+• AndroidX AppCompat 1.6.1
+• Material Components 1.10.0
+• Lifecycle (ViewModel, LiveData) 2.6.2
+• RecyclerView 1.3.2
+• Socket.IO Client 2.1.0
+• ConstraintLayout 2.1.4
+
+═══════════════════════════════════════════════════════════════
+
+PERMISSÕES ANDROID:
+
+✓ INTERNET                  (Socket.IO)
+✓ ACCESS_WIFI_STATE         (Ler Wi-Fi)
+✓ CHANGE_WIFI_STATE         (Escanear Wi-Fi)
+✓ ACCESS_FINE_LOCATION      (Scan Wi-Fi Android 8+)
+✓ ACCESS_COARSE_LOCATION    (Backup localização)
+✓ FOREGROUND_SERVICE        (Serviço contínuo)
+
+═══════════════════════════════════════════════════════════════
+
+ESTATÍSTICAS DO PROJETO:
+
+📁 Pacotes Java:        4
+📄 Classes Java:        6
+📐 Layouts XML:         2
+🎨 Drawables XML:       5
+📝 Arquivos Recursos:   2
+📖 Documentos:          5
+🟢 Servidor Node.js:    1
+🔧 Scripts:             1
+
+Linhas de Código:      ~2500+ (aproximadamente)
+
+═══════════════════════════════════════════════════════════════
+
+STATUS: ✅ PROJETO COMPLETO E PRONTO PARA USO
+
+═══════════════════════════════════════════════════════════════
+
