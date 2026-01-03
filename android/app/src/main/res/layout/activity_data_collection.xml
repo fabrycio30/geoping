@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5"
+    tools:context=".DataCollectionActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Cabeçalho -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="GeoPing - Coleta de Dados"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#2C3E50"
+            android:gravity="center"
+            android:paddingBottom="10dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sistema de Localização Indoor"
+            android:textSize="14sp"
+            android:textColor="#7F8C8D"
+            android:gravity="center"
+            android:paddingBottom="30dp"/>
+
+        <!-- Card de Configuração -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Configuração"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#34495E"
+                    android:paddingBottom="15dp"/>
+
+                <!-- Campo: Nome da Sala -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Nome da Sala (Label)"
+                    android:textSize="14sp"
+                    android:textColor="#7F8C8D"
+                    android:paddingBottom="5dp"/>
+
+                <EditText
+                    android:id="@+id/editTextRoomLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Ex: LAB_LESERC"
+                    android:inputType="text"
+                    android:padding="12dp"
+                    android:background="@android:drawable/edit_text"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="15dp"/>
+
+                <!-- Campo: URL do Servidor -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="URL do Servidor"
+                    android:textSize="14sp"
+                    android:textColor="#7F8C8D"
+                    android:paddingBottom="5dp"/>
+
+                <EditText
+                    android:id="@+id/editTextServerUrl"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="http://192.168.1.100:3000"
+                    android:inputType="textUri"
+                    android:padding="12dp"
+                    android:background="@android:drawable/edit_text"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="15dp"/>
+
+                <!-- Campo: Intervalo de Scan (segundos) -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Intervalo de Scan (segundos)"
+                    android:textSize="14sp"
+                    android:textColor="#7F8C8D"
+                    android:paddingBottom="5dp"/>
+
+                <EditText
+                    android:id="@+id/editTextScanInterval"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="3"
+                    android:inputType="number"
+                    android:padding="12dp"
+                    android:background="@android:drawable/edit_text"
+                    android:textSize="16sp"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Card de Controle -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Controle de Coleta"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#34495E"
+                    android:paddingBottom="15dp"/>
+
+                <!-- Botões de Controle -->
+                <Button
+                    android:id="@+id/buttonStartCollection"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:text="INICIAR COLETA"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:background="#27AE60"
+                    android:textColor="#FFFFFF"
+                    android:layout_marginBottom="10dp"/>
+
+                <Button
+                    android:id="@+id/buttonStopCollection"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:text="PARAR COLETA"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:background="#E74C3C"
+                    android:textColor="#FFFFFF"
+                    android:enabled="false"
+                    android:layout_marginBottom="10dp"/>
+
+                <Button
+                    android:id="@+id/buttonTrainModel"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:text="TREINAR MODELO DA SALA"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:background="#3498DB"
+                    android:textColor="#FFFFFF"
+                    android:enabled="false"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Card de Status -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Status e Logs"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#34495E"
+                    android:paddingBottom="15dp"/>
+
+                <!-- Status Atual -->
+                <TextView
+                    android:id="@+id/textViewStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Status: Aguardando..."
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#3498DB"
+                    android:paddingBottom="10dp"/>
+
+                <!-- Contador de Scans -->
+                <TextView
+                    android:id="@+id/textViewScanCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Scans realizados: 0"
+                    android:textSize="14sp"
+                    android:textColor="#34495E"
+                    android:paddingBottom="15dp"/>
+
+                <!-- Área de Logs -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Logs:"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#7F8C8D"
+                    android:paddingBottom="5dp"/>
+
+                <ScrollView
+                    android:id="@+id/scrollViewLogs"
+                    android:layout_width="match_parent"
+                    android:layout_height="400dp"
+                    android:background="#ECEFF1"
+                    android:padding="10dp"
+                    android:scrollbars="vertical"
+                    android:fadeScrollbars="false">
+
+                    <TextView
+                        android:id="@+id/textViewLogs"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Pronto para iniciar coleta...\n"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:textColor="#2C3E50"
+                        android:lineSpacingExtra="2dp"/>
+                </ScrollView>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+</ScrollView>
+
+
+

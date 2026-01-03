@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Cabeçalho -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Resultados do Treinamento"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#2C3E50"
+            android:gravity="center"
+            android:paddingBottom="10dp"/>
+
+        <TextView
+            android:id="@+id/textViewRoomLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sala: LAB_LESERC"
+            android:textSize="16sp"
+            android:textColor="#7F8C8D"
+            android:gravity="center"
+            android:paddingBottom="20dp"/>
+
+        <!-- Card: Resumo do Treinamento -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="15dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="15dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Resumo do Treinamento"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#34495E"
+                    android:paddingBottom="10dp"/>
+
+                <TextView
+                    android:id="@+id/textViewTrainingSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Carregando informacoes..."
+                    android:textSize="14sp"
+                    android:textColor="#2C3E50"
+                    android:lineSpacingExtra="4dp"
+                    android:fontFamily="monospace"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Card: Interpretacao do Modelo -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="15dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:background="#E8F5E9">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="15dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Como Interpretar os Resultados"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#34495E"
+                    android:paddingBottom="10dp"/>
+
+                <TextView
+                    android:id="@+id/textViewInterpretation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="O modelo aprendeu o padrao sala.\n\nComo funciona:\n• Erro &lt; limiar: Usuario DENTRO da sala\n• Erro &gt; limiar: Usuario FORA da sala\n\nO limiar eh calculado usando metodo IQR (Interquartile Range), importante contra outliers."
+                    android:textSize="14sp"
+                    android:textColor="#2C3E50"
+                    android:lineSpacingExtra="4dp"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Card: Detalhes Tecnicos (Expansivel) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardTechnicalDetails"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="15dp">
+
+                <TextView
+                    android:id="@+id/textViewTechnicalHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Detalhes Tecnicos ▼"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#34495E"
+                    android:paddingBottom="10dp"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+                <TextView
+                    android:id="@+id/textViewTechnicalDetails"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Carregando detalhes tecnicos..."
+                    android:textSize="13sp"
+                    android:textColor="#2C3E50"
+                    android:lineSpacingExtra="4dp"
+                    android:fontFamily="monospace"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Card: Histórico de Treinamento -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="15dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Histórico de Treinamento"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#34495E"
+                    android:paddingBottom="10dp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Evolucao do erro (loss) durante as epocas:\n• Training Loss: erro nos dados de treino\n• Validation Loss: erro em dados nao vistos\n\nIdeal: ambas decrescendo e convergindo\nAtencao: val_loss crescendo indica overfitting"
+                    android:textSize="12sp"
+                    android:textColor="#7F8C8D"
+                    android:paddingBottom="10dp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <!-- Loading indicator -->
+                <ProgressBar
+                    android:id="@+id/progressBarTrainingHistory"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:visibility="visible"/>
+
+                <!-- Imagem do gráfico -->
+                <ImageView
+                    android:id="@+id/imageViewTrainingHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:scaleType="fitCenter"
+                    android:visibility="gone"
+                    android:contentDescription="Gráfico de histórico de treinamento"/>
+
+                <TextView
+                    android:id="@+id/textViewErrorTrainingHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Erro ao carregar imagem"
+                    android:textColor="#E74C3C"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:padding="20dp"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Card: Distribuição dos Erros -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="15dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Distribuição dos Erros de Reconstrução"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#34495E"
+                    android:paddingBottom="10dp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Histograma dos erros de reconstrucao (MSE):\n• Barras azuis: frequencia de cada erro\n• Linha vermelha tracejada: limiar de decisao\n\nInterpretacao:\n• Maioria a esquerda do limiar: modelo bem ajustado\n• Poucas amostras a direita: boa separacao"
+                    android:textSize="12sp"
+                    android:textColor="#7F8C8D"
+                    android:paddingBottom="10dp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <!-- Loading indicator -->
+                <ProgressBar
+                    android:id="@+id/progressBarReconstructionErrors"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:visibility="visible"/>
+
+                <!-- Imagem do gráfico -->
+                <ImageView
+                    android:id="@+id/imageViewReconstructionErrors"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:scaleType="fitCenter"
+                    android:visibility="gone"
+                    android:contentDescription="Gráfico de erros de reconstrução"/>
+
+                <TextView
+                    android:id="@+id/textViewErrorReconstructionErrors"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Erro ao carregar imagem"
+                    android:textColor="#E74C3C"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:padding="20dp"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Botão Voltar -->
+        <Button
+            android:id="@+id/buttonBack"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="VOLTAR"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="#95A5A6"
+            android:textColor="#FFFFFF"/>
+
+    </LinearLayout>
+</ScrollView>
+

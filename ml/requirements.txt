@@ -1,0 +1,22 @@
+# GeoPing - Dependências Python para Machine Learning
+# Sistema de Localização Indoor usando Autoencoder
+
+# Core
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Machine Learning
+tensorflow>=2.13.0
+scikit-learn>=1.3.0
+
+# Database
+psycopg2-binary>=2.9.0
+
+# Visualização
+matplotlib>=3.7.0
+
+# Utilidades
+python-dotenv>=1.0.0
+
+
+

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GeoPing</string>
+    <string name="room_label_hint">Ex: LAB_LESERC</string>
+    <string name="server_url_hint">http://192.168.1.100:3000</string>
+    <string name="scan_interval_hint">3</string>
+    <string name="start_collection">INICIAR COLETA</string>
+    <string name="stop_collection">PARAR COLETA</string>
+    <string name="status_waiting">Status: Aguardando...</string>
+    <string name="status_collecting">Status: Coletando dados...</string>
+    <string name="status_stopped">Status: Coleta parada</string>
+</resources>
+
+
+
+
+
