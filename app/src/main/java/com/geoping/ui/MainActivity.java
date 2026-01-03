@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.geoping.R;
 import com.geoping.model.ChatMessage;
+import com.geoping.services.RoomManager;
 import com.geoping.services.WifiProximityService;
 import com.geoping.viewmodel.ChatViewModel;
 
@@ -50,15 +51,19 @@ public class MainActivity extends AppCompatActivity {
     
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 123;
+    private static final int ROOM_SELECTOR_REQUEST_CODE = 456;
     
-    // ViewModels
+    // ViewModels e Managers
     private ChatViewModel chatViewModel;
+    private RoomManager roomManager;
     
     // Views
     private RecyclerView messagesRecyclerView;
     private EditText messageInput;
     private Button sendButton;
+    private Button btnConfigureRoom;
     private TextView currentRoomText;
+    private TextView detectedWifiText;
     private TextView connectionStatusText;
     private View connectionIndicator;
     
@@ -80,6 +85,9 @@ public class MainActivity extends AppCompatActivity {
         
         // Inicializa o ViewModel
         chatViewModel = new ViewModelProvider(this).get(ChatViewModel.class);
+        
+        // Inicializa o RoomManager
+        roomManager = RoomManager.getInstance(this);
         
         // Inicializa as views
         initViews();
@@ -104,7 +112,9 @@ public class MainActivity extends AppCompatActivity {
         messagesRecyclerView = findViewById(R.id.messagesRecyclerView);
         messageInput = findViewById(R.id.messageInput);
         sendButton = findViewById(R.id.sendButton);
+        btnConfigureRoom = findViewById(R.id.btnConfigureRoom);
         currentRoomText = findViewById(R.id.currentRoomText);
+        detectedWifiText = findViewById(R.id.detectedWifiText);
         connectionStatusText = findViewById(R.id.connectionStatusText);
         connectionIndicator = findViewById(R.id.connectionIndicator);
     }
@@ -140,16 +150,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         
-        // Observer para sala atual
-        chatViewModel.getCurrentRoom().observe(this, new Observer<String>() {
+        // Observer para sala selecionada (para envio)
+        chatViewModel.getSelectedRoom().observe(this, new Observer<String>() {
             @Override
-            public void onChanged(String room) {
-                if (room != null) {
-                    currentRoomText.setText(room);
-                    Log.d(TAG, "Sala atual: " + room);
+            public void onChanged(String roomId) {
+                if (roomId != null) {
+                    // Busca nome da sala
+                    com.geoping.model.Room room = roomManager.getRoomById(roomId);
+                    String roomName = room != null ? room.getRoomName() : roomId;
+                    
+                    currentRoomText.setText("📤 Enviando para: " + roomName);
+                    Log.d(TAG, "Sala selecionada para envio: " + roomName);
                 } else {
                     currentRoomText.setText(R.string.no_room);
-                    Log.d(TAG, "Sem sala ativa");
+                    Log.d(TAG, "Nenhuma sala selecionada");
                 }
             }
         });
@@ -159,6 +173,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChanged(Boolean isConnected) {
                 updateConnectionStatus(isConnected);
+            }
+        });
+        
+        // Observer para Wi-Fi detectado
+        chatViewModel.getDetectedWifi().observe(this, new Observer<String>() {
+            @Override
+            public void onChanged(String detectedSSID) {
+                updateDetectedWifi(detectedSSID);
             }
         });
     }
@@ -186,6 +208,22 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+        
+        // Listener do botão de configurar sala
+        btnConfigureRoom.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openRoomSelector();
+            }
+        });
+    }
+    
+    /**
+     * Abre a tela de seleção de salas.
+     */
+    private void openRoomSelector() {
+        Intent intent = new Intent(this, RoomSelectorActivity.class);
+        startActivityForResult(intent, ROOM_SELECTOR_REQUEST_CODE);
     }
     
     /**
@@ -199,10 +237,10 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         
-        // Verifica se está em uma sala
-        String currentRoom = chatViewModel.getCurrentRoom().getValue();
-        if (currentRoom == null) {
-            Toast.makeText(this, R.string.error_no_room, Toast.LENGTH_SHORT).show();
+        // Verifica se há uma sala selecionada
+        String selectedRoom = chatViewModel.getSelectedRoom().getValue();
+        if (selectedRoom == null) {
+            Toast.makeText(this, "Selecione uma sala primeiro (botão 🔧)", Toast.LENGTH_SHORT).show();
             return;
         }
         
@@ -347,10 +385,51 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "Serviço WifiProximityService iniciado");
     }
     
+    /**
+     * Callback quando retorna da RoomSelectorActivity.
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        if (requestCode == ROOM_SELECTOR_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            String roomId = data.getStringExtra("room_id");
+            String roomName = data.getStringExtra("room_name");
+            
+            if (roomId != null && roomName != null) {
+                // Seleciona a sala para envio E inscreve (para receber)
+                chatViewModel.selectRoomForSending(roomId, roomName, roomManager);
+                
+                Toast.makeText(this, 
+                        "Inscrito em: " + roomName + "\n" +
+                        "Você receberá mensagens quando estiver na cobertura Wi-Fi", 
+                        Toast.LENGTH_LONG).show();
+                
+                Log.d(TAG, "Sala selecionada e inscrito: " + roomName);
+            }
+        }
+    }
+    
+    /**
+     * Atualiza o texto do Wi-Fi detectado.
+     * 
+     * @param detectedSSID SSID detectado ou null
+     */
+    private void updateDetectedWifi(String detectedSSID) {
+        if (detectedSSID != null) {
+            detectedWifiText.setText("📍 Na cobertura de: " + detectedSSID);
+            Log.d(TAG, "Wi-Fi detectado: " + detectedSSID);
+        } else {
+            detectedWifiText.setText("📍 Nenhuma rede detectada");
+            Log.d(TAG, "Sem Wi-Fi detectado");
+        }
+    }
+    
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "MainActivity onDestroy");
     }
 }
+
 

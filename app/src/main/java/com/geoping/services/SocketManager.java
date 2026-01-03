@@ -29,7 +29,7 @@ public class SocketManager {
     private static final String TAG = "SocketManager";
     
     // URL do servidor Socket.IO - ALTERE PARA IP/SERVIDOR
-    private static final String SERVER_URL = "http://192.168.18.12:3000";
+    private static final String SERVER_URL = "http://192.168.100.56:3000";
     
     // Instância única (Singleton)
     private static SocketManager instance;

@@ -39,6 +39,13 @@
             </intent-filter>
         </activity>
         
+        <!-- Activity de Seleção de Sala -->
+        <activity
+            android:name=".ui.RoomSelectorActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.DarkActionBar" />
+        
         <!-- Serviço de Proximidade Wi-Fi -->
         <service
             android:name=".services.WifiProximityService"

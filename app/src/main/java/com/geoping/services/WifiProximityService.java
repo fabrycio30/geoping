@@ -20,7 +20,12 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.lifecycle.MutableLiveData;
 
+import com.geoping.R;
+import com.geoping.model.Room;
+
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Serviço de Proximidade Wi-Fi - O "Radar" das Cercas Digitais.
@@ -38,12 +43,12 @@ public class WifiProximityService extends Service {
     private static final String TAG = "WifiProximityService";
     
     // Configuração da cerca digital alvo
-    private static final String TARGET_SSID = "ALMEIDA 2.4G";  // Nome da rede Wi-Fi alvo
+    private static final String TARGET_SSID = "F-5.8Ghz";  // Nome da rede Wi-Fi alvo
     private static final int THRESHOLD_ENTER = -75;      // Limiar de entrada (dBm)
     private static final int THRESHOLD_EXIT = -85;       // Limiar de saída (dBm)
     
     // Intervalo de escaneamento (em milissegundos)
-    private static final long SCAN_INTERVAL = 5000;      // 5 segundos
+    private static final long SCAN_INTERVAL = 2000;      // 2 segundos
     
     // Notificação para Foreground Service
     private static final String CHANNEL_ID = "WifiProximityChannel";
@@ -52,13 +57,15 @@ public class WifiProximityService extends Service {
     // Gerenciadores Android
     private WifiManager wifiManager;
     private Handler scanHandler;
+    private RoomManager roomManager;
     
     // Estado atual do serviço
-    private String currentActiveRoom = null;             // Sala ativa atual (null = nenhuma)
+    private String currentDetectedSSID = null;           // SSID detectado atualmente
     private boolean isScanning = false;                  // Flag de escaneamento ativo
+    private Set<String> currentActiveRooms = new HashSet<>();  // Salas Socket.IO ativas
     
-    // LiveData para comunicar mudanças de sala para a UI
-    private static MutableLiveData<String> currentRoomLiveData = new MutableLiveData<>(null);
+    // LiveData para comunicar Wi-Fi detectado (apenas informativo)
+    private static MutableLiveData<String> detectedWifiLiveData = new MutableLiveData<>(null);
     
     // BroadcastReceiver para resultados do escaneamento Wi-Fi
     private BroadcastReceiver wifiScanReceiver = new BroadcastReceiver() {
@@ -82,6 +89,9 @@ public class WifiProximityService extends Service {
         
         // Inicializa o WifiManager
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        
+        // Inicializa o RoomManager
+        roomManager = RoomManager.getInstance(getApplicationContext());
         
         // Inicializa o Handler para agendamento de scans
         scanHandler = new Handler(Looper.getMainLooper());
@@ -135,11 +145,17 @@ public class WifiProximityService extends Service {
             Log.w(TAG, "Receiver já estava desregistrado");
         }
         
-        // Se estava em uma sala, sai dela
-        if (currentActiveRoom != null) {
-            SocketManager.getInstance().leaveRoom(currentActiveRoom);
-            currentActiveRoom = null;
-            currentRoomLiveData.postValue(null);
+        // Sai de todas as salas ativas
+        for (String roomId : currentActiveRooms) {
+            SocketManager.getInstance().leaveRoom(roomId);
+            Log.d(TAG, "Saiu da sala ao destruir serviço: " + roomId);
+        }
+        currentActiveRooms.clear();
+        
+        // Limpa o Wi-Fi detectado
+        if (currentDetectedSSID != null) {
+            currentDetectedSSID = null;
+            detectedWifiLiveData.postValue(null);
         }
     }
     
@@ -194,8 +210,10 @@ public class WifiProximityService extends Service {
     /**
      * Processa os resultados do escaneamento Wi-Fi.
      * 
-     * Esta é a lógica central do serviço. Implementa histerese para evitar
-     * "flapping" (entrada/saída repetitiva) quando o sinal está no limite.
+     * COMPORTAMENTO HÍBRIDO:
+     * 1. Detecta Wi-Fi e informa
+     * 2. Busca salas inscritas com esse SSID
+     * 3. Entra/sai automaticamente do Socket.IO baseado em cobertura + inscrição
      */
     private void handleScanResults() {
         List<ScanResult> scanResults = wifiManager.getScanResults();
@@ -209,30 +227,89 @@ public class WifiProximityService extends Service {
             int signalLevel = targetNetwork.level;
             Log.d(TAG, "Rede " + TARGET_SSID + " encontrada com sinal: " + signalLevel + " dBm");
             
-            // LÓGICA DE ENTRADA: Se não está em nenhuma sala E sinal forte o suficiente
-            if (currentActiveRoom == null && signalLevel > THRESHOLD_ENTER) {
-                enterRoom(TARGET_SSID);
-                updateNotification("Conectado à sala: " + TARGET_SSID);
-            }
-            
-            // LÓGICA DE SAÍDA: Se está na sala E sinal ficou muito fraco
-            else if (TARGET_SSID.equals(currentActiveRoom) && signalLevel < THRESHOLD_EXIT) {
-                exitRoom(TARGET_SSID);
-                updateNotification("Monitorando cercas digitais...");
+            // Verifica se o sinal está bom o suficiente
+            if (signalLevel > THRESHOLD_ENTER) {
+                // Atualiza Wi-Fi detectado
+                if (!TARGET_SSID.equals(currentDetectedSSID)) {
+                    currentDetectedSSID = TARGET_SSID;
+                    detectedWifiLiveData.postValue(TARGET_SSID);
+                    Log.i(TAG, "Wi-Fi detectado na cobertura: " + TARGET_SSID);
+                }
+                
+                // NOVO: Entra automaticamente nas salas inscritas
+                enterSubscribedRoomsForSSID(TARGET_SSID);
+                updateNotification("📍 Na cobertura: " + TARGET_SSID + " (" + signalLevel + " dBm)");
+                
+            } else if (signalLevel < THRESHOLD_EXIT) {
+                // Sinal fraco - saiu da cobertura
+                if (TARGET_SSID.equals(currentDetectedSSID)) {
+                    // NOVO: Sai automaticamente das salas
+                    leaveAllActiveRooms();
+                    
+                    currentDetectedSSID = null;
+                    detectedWifiLiveData.postValue(null);
+                    updateNotification("Monitorando cercas digitais...");
+                    Log.i(TAG, "Saiu da cobertura de: " + TARGET_SSID);
+                }
             }
         } else {
             // Rede não encontrada
-            Log.d(TAG, "Rede " + TARGET_SSID + " não encontrada no scan");
-            
-            // Se estava na sala, sai dela (saiu do alcance)
-            if (TARGET_SSID.equals(currentActiveRoom)) {
-                exitRoom(TARGET_SSID);
+            if (currentDetectedSSID != null) {
+                Log.d(TAG, "Rede " + TARGET_SSID + " não encontrada no scan");
+                
+                // NOVO: Sai das salas ativas
+                leaveAllActiveRooms();
+                
+                currentDetectedSSID = null;
+                detectedWifiLiveData.postValue(null);
                 updateNotification("Monitorando cercas digitais...");
             }
         }
         
         // Agenda o próximo scan
         scheduleScan();
+    }
+    
+    /**
+     * Entra automaticamente nas salas inscritas que correspondem ao SSID.
+     * 
+     * @param ssid SSID detectado
+     */
+    private void enterSubscribedRoomsForSSID(String ssid) {
+        // Busca todas as salas inscritas
+        List<String> subscribedIds = roomManager.getSubscribedRoomIds();
+        
+        for (String roomId : subscribedIds) {
+            Room room = roomManager.getRoomById(roomId);
+            
+            if (room != null && room.matchesSSID(ssid)) {
+                // Está inscrito E o SSID corresponde
+                if (!currentActiveRooms.contains(roomId)) {
+                    // Entra na sala Socket.IO
+                    SocketManager.getInstance().joinRoom(roomId);
+                    currentActiveRooms.add(roomId);
+                    
+                    Log.i(TAG, "✅ Entrou automaticamente na sala: " + room.getRoomName() + 
+                            " (inscrito + na cobertura)");
+                }
+            }
+        }
+    }
+    
+    /**
+     * Sai de todas as salas Socket.IO ativas.
+     */
+    private void leaveAllActiveRooms() {
+        for (String roomId : currentActiveRooms) {
+            SocketManager.getInstance().leaveRoom(roomId);
+            
+            Room room = roomManager.getRoomById(roomId);
+            String roomName = room != null ? room.getRoomName() : roomId;
+            
+            Log.i(TAG, "❌ Saiu automaticamente da sala: " + roomName + 
+                    " (fora da cobertura, mas continua inscrito)");
+        }
+        currentActiveRooms.clear();
     }
     
     /**
@@ -253,41 +330,6 @@ public class WifiProximityService extends Service {
         return null;
     }
     
-    /**
-     * Entra em uma sala (cerca digital).
-     * 
-     * @param roomId Identificador da sala
-     */
-    private void enterRoom(String roomId) {
-        Log.i(TAG, "ENTRANDO na sala: " + roomId);
-        
-        // Atualiza o estado interno
-        currentActiveRoom = roomId;
-        
-        // Notifica a UI via LiveData
-        currentRoomLiveData.postValue(roomId);
-        
-        // Entra na sala no Socket.IO
-        SocketManager.getInstance().joinRoom(roomId);
-    }
-    
-    /**
-     * Sai de uma sala (cerca digital).
-     * 
-     * @param roomId Identificador da sala
-     */
-    private void exitRoom(String roomId) {
-        Log.i(TAG, "SAINDO da sala: " + roomId);
-        
-        // Sai da sala no Socket.IO
-        SocketManager.getInstance().leaveRoom(roomId);
-        
-        // Atualiza o estado interno
-        currentActiveRoom = null;
-        
-        // Notifica a UI via LiveData
-        currentRoomLiveData.postValue(null);
-    }
     
     /**
      * Cria o canal de notificação para Foreground Service (Android 8.0+).
@@ -338,12 +380,12 @@ public class WifiProximityService extends Service {
     }
     
     /**
-     * Retorna o LiveData que observa mudanças na sala atual.
+     * Retorna o LiveData que observa Wi-Fi detectado.
      * 
-     * @return LiveData<String> com o ID da sala atual ou null
+     * @return LiveData<String> com o SSID detectado ou null
      */
-    public static MutableLiveData<String> getCurrentRoomLiveData() {
-        return currentRoomLiveData;
+    public static MutableLiveData<String> getDetectedWifiLiveData() {
+        return detectedWifiLiveData;
     }
 }
 

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Criar Nova Sala"
+        android:textColor="@color/text_primary"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- Nome da Sala -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Nome da Sala:"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp" />
+
+    <EditText
+        android:id="@+id/editRoomName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/message_input_background"
+        android:hint="Ex: lab LESERC, Biblioteca"
+        android:inputType="text"
+        android:minHeight="48dp"
+        android:padding="12dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_hint"
+        android:textSize="16sp" />
+
+    <!-- SSID Wi-Fi -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="SSID da Rede Wi-Fi (opcional):"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp" />
+
+    <EditText
+        android:id="@+id/editWifiSSID"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/message_input_background"
+        android:hint="Ex: ALMEIDA 2.4G"
+        android:inputType="text"
+        android:minHeight="48dp"
+        android:padding="12dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_hint"
+        android:textSize="16sp" />
+
+    <!-- Info -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="ℹ️ Deixe vazio para criar uma sala virtual (sem detecção Wi-Fi)"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp" />
+
+    <!-- Botões -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancelDialog"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancelar"
+            android:textColor="@color/text_secondary" />
+
+        <Button
+            android:id="@+id/btnCreateDialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="@color/colorPrimary"
+            android:text="Criar"
+            android:textColor="@android:color/white" />
+
+    </LinearLayout>
+
+</LinearLayout>
+
