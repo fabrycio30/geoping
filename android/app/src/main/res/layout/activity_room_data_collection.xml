@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="24dp"
+    android:background="#F5F5F5"
+    tools:context=".RoomDataCollectionActivity">
+
+    <!-- Titulo -->
+    <TextView
+        android:id="@+id/textViewRoomName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Configurando Sala"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#1976D2"
+        android:gravity="center" />
+
+    <TextView
+        android:id="@+id/textViewWifiSsid"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Wi-Fi: Nome da Rede"
+        android:textSize="16sp"
+        android:textColor="#666666"
+        android:gravity="center" />
+
+    <!-- Radar Animado (CircularProgressIndicator do Material Design) -->
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/radarProgress"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_marginTop="40dp"
+        android:indeterminate="true"
+        app:indicatorSize="200dp"
+        app:trackThickness="8dp"
+        app:indicatorColor="#1976D2"
+        app:trackColor="#E0E0E0" />
+
+    <!-- Status de Coleta -->
+    <TextView
+        android:id="@+id/textViewCollectionStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Coletando amostras..."
+        android:textSize="18sp"
+        android:textColor="#333333"
+        android:textStyle="bold" />
+
+    <!-- Contador de Amostras -->
+    <TextView
+        android:id="@+id/textViewSampleCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Amostras coletadas: 0 / 30"
+        android:textSize="20sp"
+        android:textColor="#1976D2"
+        android:textStyle="bold" />
+
+    <!-- Mensagem de Progresso -->
+    <TextView
+        android:id="@+id/textViewProgressMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Colete pelo menos 30 amostras para treinar o modelo"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:gravity="center" />
+
+    <!-- Espaco flexivel -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Botao Treinar Modelo (inicialmente desabilitado) -->
+    <Button
+        android:id="@+id/buttonTrainModel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="TREINAR MODELO DA SALA"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:padding="16dp"
+        android:enabled="false"
+        android:backgroundTint="#4CAF50" />
+
+    <!-- Botao Parar Coleta -->
+    <Button
+        android:id="@+id/buttonStopCollection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="PARAR COLETA"
+        android:textSize="16sp"
+        android:padding="16dp"
+        android:backgroundTint="#F44336"
+        android:textColor="@android:color/white" />
+
+</LinearLayout>
+

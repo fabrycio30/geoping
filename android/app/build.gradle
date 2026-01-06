@@ -39,6 +39,9 @@ dependencies {
     // OkHttp para requisições HTTP
     implementation 'com.squareup.okhttp3:okhttp:4.11.0'
 
+    // Socket.io Client para comunicação em tempo real
+    implementation 'io.socket:socket.io-client:2.1.0'
+
     // Testes
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'

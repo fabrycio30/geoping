@@ -1,4 +1,4 @@
-# GeoPing v2.0 - Sistema Indoor RTLS
+# GeoPing v2.0 
 
 Sistema de localização indoor em tempo real usando Wi-Fi fingerprinting e One-Class Classification com Autoencoders.
 

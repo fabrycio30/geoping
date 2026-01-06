@@ -20,6 +20,11 @@
     
     <!-- Para conectividade de rede -->
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Para Foreground Service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -30,21 +35,103 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
         
+        <!-- PRODUCAO: Tela principal (Login) -->
         <activity
-            android:name=".DataCollectionActivity"
+            android:name="com.geoping.app.LoginActivity"
             android:exported="true"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name="com.geoping.app.RegisterActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"/>
+
+        <activity
+            android:name="com.geoping.app.MainActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"/>
+
+        <activity
+            android:name="com.geoping.app.CreateRoomActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"
+            android:parentActivityName="com.geoping.app.MainActivity"/>
+
+        <activity
+            android:name="com.geoping.app.SearchRoomActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"
+            android:parentActivityName="com.geoping.app.MainActivity"/>
+
+        <activity
+            android:name="com.geoping.app.RoomDataCollectionActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"
+            android:parentActivityName="com.geoping.app.CreateRoomActivity"/>
+
+        <activity
+            android:name="com.geoping.app.RoomTrainingResultsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"/>
+
+        <activity
+            android:name="com.geoping.app.RoomManagementActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"
+            android:parentActivityName="com.geoping.app.MainActivity"/>
+
+        <activity
+            android:name="com.geoping.app.ChatActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"
+            android:parentActivityName="com.geoping.app.MainActivity"/>
+
+        <activity
+            android:name="com.geoping.app.ConversationActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"
+            android:parentActivityName="com.geoping.app.ChatActivity"/>
+
+        <activity
+            android:name="com.geoping.app.PendingRequestsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme"
+            android:parentActivityName="com.geoping.app.RoomManagementActivity"/>
+
+        <!-- TESTE/ANALISE: App de coleta (acessivel via menu dev) -->
+        <activity
+            android:name=".DataCollectionActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"/>
         
         <activity
             android:name=".TrainingResultsActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             android:parentActivityName=".DataCollectionActivity"/>
+
+        <!-- Serviço de Detecção de Presença -->
+        <service
+            android:name="com.geoping.app.services.PresenceService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
     </application>
 
 </manifest>

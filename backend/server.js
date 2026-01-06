@@ -7,14 +7,23 @@
 require('dotenv').config();
 
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const { Pool } = require('pg');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { Server } = require('socket.io');
 
 // Configuração do servidor
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -31,6 +40,10 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
+// Disponibilizar pool e io para as rotas
+app.set('pool', pool);
+app.set('io', io);
+
 // Teste de conexão com o banco
 pool.connect((err, client, release) => {
     if (err) {
@@ -40,6 +53,96 @@ pool.connect((err, client, release) => {
         release();
     }
 });
+
+// ================================================================================
+// ROTAS DE PRODUCAO (v2.0)
+// ================================================================================
+
+// Importar rotas modulares
+const authRoutes = require('./routes/auth');
+const roomRoutes = require('./routes/rooms');
+const presenceRoutes = require('./routes/presence');
+const messagesRoutes = require('./routes/messages');
+
+// Importar middleware de autenticação
+const authMiddleware = require('./middleware/auth');
+const jwt = require('jsonwebtoken');
+
+// ================================================================================
+// GERENCIAMENTO SOCKET.IO
+// ================================================================================
+
+io.on('connection', (socket) => {
+    console.log(`[Socket.io] Cliente conectado: ${socket.id}`);
+    
+    let authenticatedUserId = null;
+    let authenticatedUsername = null;
+
+    // Evento: Autenticação
+    socket.on('authenticate', (token) => {
+        try {
+            if (!token || !token.startsWith('Bearer ')) {
+                socket.emit('authentication_failed', 'Token inválido');
+                return;
+            }
+            
+            const actualToken = token.substring(7);
+            const decoded = jwt.verify(actualToken, process.env.JWT_SECRET || 'geoping_secret_key');
+            
+            authenticatedUserId = decoded.userId;
+            authenticatedUsername = decoded.username;
+            
+            socket.emit('authenticated', `Autenticado como ${authenticatedUsername}`);
+            console.log(`[Socket.io] Usuário autenticado: ${authenticatedUsername} (${authenticatedUserId})`);
+        } catch (error) {
+            console.error('[Socket.io] Erro na autenticação:', error.message);
+            socket.emit('authentication_failed', 'Token inválido ou expirado');
+        }
+    });
+
+    // Evento: Entrar em uma sala
+    socket.on('join_room', (roomId) => {
+        if (!authenticatedUserId) {
+            socket.emit('error', 'Você precisa estar autenticado');
+            return;
+        }
+        
+        socket.join(roomId);
+        console.log(`[Socket.io] ${authenticatedUsername} entrou na sala: ${roomId}`);
+        socket.emit('joined_room', roomId);
+        
+        // Notificar outros na sala
+        socket.to(roomId).emit('user_joined', {
+            userId: authenticatedUserId,
+            username: authenticatedUsername
+        });
+    });
+
+    // Evento: Sair de uma sala
+    socket.on('leave_room', (roomId) => {
+        socket.leave(roomId);
+        console.log(`[Socket.io] ${authenticatedUsername} saiu da sala: ${roomId}`);
+        
+        // Notificar outros na sala
+        socket.to(roomId).emit('user_left', {
+            userId: authenticatedUserId,
+            username: authenticatedUsername
+        });
+    });
+
+    // Evento: Desconexão
+    socket.on('disconnect', () => {
+        console.log(`[Socket.io] Cliente desconectado: ${socket.id} (${authenticatedUsername || 'não autenticado'})`);
+    });
+});
+
+// Registrar rotas públicas
+app.use('/api/auth', authRoutes);
+
+// Registrar rotas protegidas (requerem autenticação)
+app.use('/api/rooms', roomRoutes);
+app.use('/api/presence', presenceRoutes);
+app.use('/api', messagesRoutes);
 
 // ================================================================================
 // ROTAS DA API
@@ -354,9 +457,23 @@ app.post('/api/train/:room_label', async (req, res) => {
         });
 
         // Tratar conclusão do processo
-        pythonProcess.on('close', (code) => {
+        pythonProcess.on('close', async (code) => {
             if (code === 0) {
                 console.log(`[TREINAMENTO] Concluído com sucesso para '${room_label}'`);
+                
+                // Atualizar status do modelo na tabela rooms
+                try {
+                    const updateQuery = `
+                        UPDATE rooms 
+                        SET model_trained = TRUE, 
+                            last_trained_at = NOW() 
+                        WHERE wifi_ssid = $1
+                    `;
+                    await pool.query(updateQuery, [room_label]);
+                    console.log(`[TREINAMENTO] Status do modelo atualizado no banco de dados para '${room_label}'`);
+                } catch (updateError) {
+                    console.error(`[TREINAMENTO] Erro ao atualizar status do modelo:`, updateError);
+                }
                 
                 // Verificar se os arquivos foram gerados
                 const modelsDir = path.join(__dirname, '..', 'ml', 'models');
@@ -493,20 +610,32 @@ app.get('/api/training-results/:room_label/:filename', (req, res) => {
 // INICIALIZAÇÃO DO SERVIDOR
 // ================================================================================
 
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log('\n===========================================');
-    console.log('  GeoPing Backend - Sistema Indoor RTLS');
+    console.log('  GeoPing Backend - Sistema Indoor RTLS v2.0');
     console.log('===========================================');
     console.log(`Servidor rodando em: http://localhost:${PORT}`);
+    console.log(`Socket.IO ativo em: ws://localhost:${PORT}`);
     console.log(`Modo: ${process.env.NODE_ENV || 'development'}`);
     console.log('===========================================\n');
     console.log('Rotas disponíveis:');
-    console.log(`  GET  /                                       - Status da API`);
+    console.log(`  [AUTH]`);
+    console.log(`  POST /api/auth/register                      - Registrar usuário`);
+    console.log(`  POST /api/auth/login                         - Login`);
+    console.log(`  [ROOMS]`);
+    console.log(`  POST /api/rooms/create                       - Criar sala`);
+    console.log(`  GET  /api/rooms/search                       - Buscar salas`);
+    console.log(`  GET  /api/rooms/my-rooms                     - Minhas salas`);
+    console.log(`  DELETE /api/rooms/:room_id                   - Deletar sala`);
+    console.log(`  [PRESENCE]`);
+    console.log(`  POST /api/presence/update                    - Atualizar presença`);
+    console.log(`  GET  /api/presence/room/:room_id             - Usuários presentes`);
+    console.log(`  [MESSAGES]`);
+    console.log(`  POST /api/conversations/create               - Criar conversa`);
+    console.log(`  POST /api/messages/send                      - Enviar mensagem`);
+    console.log(`  GET  /api/messages/:conversation_id          - Buscar mensagens`);
+    console.log(`  [ML/DATA]`);
     console.log(`  POST /api/collect                            - Coletar dados de Wi-Fi`);
-    console.log(`  GET  /api/stats/:room_label                  - Estatísticas de uma sala`);
-    console.log(`  GET  /api/training-data/:room_label          - Dados de treinamento`);
-    console.log(`  GET  /api/rooms                              - Listar todas as salas`);
-    console.log(`  GET  /api/check-samples/:room_label          - Verificar quantidade de amostras`);
     console.log(`  POST /api/train/:room_label                  - Treinar modelo da sala`);
     console.log(`  GET  /api/training-results/:room/:file       - Obter gráficos gerados`);
     console.log('\n');

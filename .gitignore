@@ -38,7 +38,8 @@ Thumbs.db
 *.bak
 *~
 
-
+# Doc 
+doc/
 
 
 

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center">
+
+        <!-- Logo/Header -->
+        <TextView
+            android:id="@+id/textViewLogo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="GeoPing"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:textColor="#2C3E50"
+            android:layout_marginTop="60dp"
+            android:layout_marginBottom="10dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sistema de Chat Indoor"
+            android:textSize="16sp"
+            android:textColor="#7F8C8D"
+            android:layout_marginBottom="60dp"/>
+
+        <!-- Campo Username -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Usuario"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editTextUsername"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:maxLines="1"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Campo Senha -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Senha"
+            android:layout_marginBottom="24dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editTextPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:maxLines="1"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Botao Login -->
+        <Button
+            android:id="@+id/buttonLogin"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="ENTRAR"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="#3498DB"/>
+
+        <!-- Link Registrar -->
+        <TextView
+            android:id="@+id/textViewRegister"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Nao tem conta? Registrar"
+            android:textSize="14sp"
+            android:textColor="#3498DB"
+            android:layout_marginTop="16dp"
+            android:clickable="true"
+            android:focusable="true"/>
+
+        <!-- Link Modo Teste/Dev (oculto inicialmente) -->
+        <TextView
+            android:id="@+id/textViewDevMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="[Modo Teste/Analise]"
+            android:textSize="12sp"
+            android:textColor="#95A5A6"
+            android:layout_marginTop="40dp"
+            android:clickable="true"
+            android:focusable="true"/>
+
+        <!-- Progress Bar -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+</ScrollView>
+

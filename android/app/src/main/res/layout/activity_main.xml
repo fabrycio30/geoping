@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F5F5">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#3498DB"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="GeoPing"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"/>
+
+        <TextView
+            android:id="@+id/textViewUsername"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Usuario"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:paddingEnd="16dp"
+            android:paddingRight="16dp"/>
+
+        <Button
+            android:id="@+id/buttonLogout"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="Sair"
+            android:textSize="12sp"
+            android:backgroundTint="#E74C3C"/>
+    </LinearLayout>
+
+    <!-- Botoes de acao -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/buttonCreateRoom"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:text="CRIAR SALA"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:backgroundTint="#27AE60"
+            android:layout_marginEnd="8dp"
+            android:layout_marginRight="8dp"/>
+
+        <Button
+            android:id="@+id/buttonSearchRoom"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:text="BUSCAR SALA"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:backgroundTint="#3498DB"
+            android:layout_marginStart="8dp"
+            android:layout_marginLeft="8dp"/>
+    </LinearLayout>
+
+    <!-- Tabs -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp">
+
+        <Button
+            android:id="@+id/buttonTabMyRooms"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:text="MINHAS SALAS"
+            android:textSize="12sp"
+            android:backgroundTint="#2C3E50"/>
+
+        <Button
+            android:id="@+id/buttonTabSubscriptions"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:text="ASSINATURAS"
+            android:textSize="12sp"
+            android:backgroundTint="#7F8C8D"/>
+    </LinearLayout>
+
+    <!-- Lista de salas -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewRooms"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="16dp"/>
+
+    <!-- Mensagem vazia -->
+    <TextView
+        android:id="@+id/textViewEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="Nenhuma sala encontrada"
+        android:textSize="16sp"
+        android:textColor="#95A5A6"
+        android:gravity="center"
+        android:visibility="gone"/>
+
+    <!-- Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"/>
+
+</LinearLayout>
+

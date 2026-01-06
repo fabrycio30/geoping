@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="4dp">
+
+    <!-- Mensagem de outro usuario (esquerda) -->
+    <LinearLayout
+        android:id="@+id/layoutOther"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:orientation="vertical"
+        android:maxWidth="280dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/textViewSenderName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Usuario"
+            android:textSize="11sp"
+            android:textColor="#666666"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="2dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:backgroundTint="#FFFFFF"
+            android:elevation="2dp"
+            android:radius="12dp">
+
+            <TextView
+                android:id="@+id/textViewContentOther"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mensagem do outro usuario"
+                android:textSize="14sp"
+                android:textColor="@android:color/black"
+                android:padding="12dp" />
+
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/textViewTimeOther"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="10:30"
+            android:textSize="10sp"
+            android:textColor="#999999"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp" />
+
+    </LinearLayout>
+
+    <!-- Mensagem propria (direita) -->
+    <LinearLayout
+        android:id="@+id/layoutMine"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:orientation="vertical"
+        android:maxWidth="280dp"
+        android:visibility="gone">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:backgroundTint="#1976D2"
+            android:elevation="2dp"
+            android:radius="12dp">
+
+            <TextView
+                android:id="@+id/textViewContentMine"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Minha mensagem"
+                android:textSize="14sp"
+                android:textColor="@android:color/white"
+                android:padding="12dp" />
+
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/textViewTimeMine"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="10:31"
+            android:textSize="10sp"
+            android:textColor="#999999"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:layout_gravity="end" />
+
+    </LinearLayout>
+
+</FrameLayout>
+
