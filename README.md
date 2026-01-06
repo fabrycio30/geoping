@@ -1,6 +1,5 @@
-# GeoPing
+# GeoPing - Plataforma Móvel para Comunicação Delimitada por Proximidade Geográfica
 
-Sistema de localização indoor em tempo real usando sinais de Wi-Fi e One-Class Classification com Autoencoders.
 
 ## Visão Geral
 
@@ -8,6 +7,7 @@ GeoPing é um sistema completo para detecção de presença indoor baseado em as
 
 - **App Android**:
   - Coleta de dados Wi-Fi (RSSI + BSSID) e interface para treinamento do modelo padrão da sala. Utilização de arquitetura autoencoder para treinamento (One-Class Classification - Dentro ou fora da sala)
+  - Aplicação Chat para usuários indoor
 - **Backend Node.js**: API REST para persistência de dados e execução de treinamento,  inferencias e chat com usuários indoor.
 - **ML Python**: Autoencoder para classificação One-Class (usuário DENTRO ou FORA da sala)
 - **Database PostgreSQL**: Armazenamento de fingerprints e modelos treinados (ainda não implementado)
