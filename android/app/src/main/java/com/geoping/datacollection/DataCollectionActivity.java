@@ -110,7 +110,7 @@ public class DataCollectionActivity extends AppCompatActivity {
             if (!checkPermissions()) {
                 requestPermissions();
             } else {
-                addLog("✓ Permissões já concedidas");
+                addLog(" Permissões já concedidas");
             }
         } catch (Exception e) {
             // Tratar erro de inicialização
@@ -237,7 +237,7 @@ public class DataCollectionActivity extends AppCompatActivity {
                     if (permission.equals(Manifest.permission.ACCESS_FINE_LOCATION) || 
                         permission.equals(Manifest.permission.ACCESS_COARSE_LOCATION)) {
                         hasLocationPermission = true;
-                        addLog("✓ Permissão de localização concedida: " + 
+                        addLog(" Permissão de localização concedida: " + 
                                (permission.equals(Manifest.permission.ACCESS_FINE_LOCATION) ? "Exata" : "Aproximada"));
                     }
                     
@@ -247,17 +247,17 @@ public class DataCollectionActivity extends AppCompatActivity {
                     
                     if (permission.equals("android.permission.NEARBY_WIFI_DEVICES")) {
                         hasNearbyDevicesPermission = true;
-                        addLog("✓ Permissão NEARBY_WIFI_DEVICES concedida");
+                        addLog(" Permissão NEARBY_WIFI_DEVICES concedida");
                     }
                 }
             }
             
             // Verificar se todas as permissões essenciais foram concedidas
             if (hasLocationPermission && hasNearbyDevicesPermission) {
-                addLog("✓ Todas as permissões necessárias concedidas");
+                addLog(" Todas as permissões necessárias concedidas");
                 Toast.makeText(this, "Permissões concedidas com sucesso", Toast.LENGTH_SHORT).show();
             } else {
-                addLog("✗ Permissões insuficientes");
+                addLog(" Permissões insuficientes");
                 
                 String mensagemErro = "Permissões necessárias:\n";
                 if (!hasLocationPermission) mensagemErro += "• Localização (exata ou aproximada)\n";
@@ -343,10 +343,10 @@ public class DataCollectionActivity extends AppCompatActivity {
         textViewStatus.setText("Status: Coletando dados...");
 
         addLog("========================================");
-        addLog("📡 Iniciando coleta de dados");
-        addLog("📍 Sala: " + roomLabel);
-        addLog("⏱️ Intervalo: " + (currentScanInterval/1000) + "s");
-        addLog("🌐 Servidor: " + serverUrl);
+        addLog("Iniciando coleta de dados");
+        addLog("Sala: " + roomLabel);
+        addLog("Intervalo: " + (currentScanInterval/1000) + "s");
+        addLog("Servidor: " + serverUrl);
         addLog("========================================");
 
         // Registrar receiver para os resultados do scan
@@ -396,8 +396,8 @@ public class DataCollectionActivity extends AppCompatActivity {
         textViewStatus.setText("Status: Coleta parada");
 
         addLog("========================================");
-        addLog("🛑 Coleta finalizada");
-        addLog("📊 Total de scans: " + scanCount);
+        addLog("Coleta finalizada");
+        addLog("Total de scans: " + scanCount);
         addLog("========================================");
 
         Toast.makeText(this, "Coleta finalizada. Total: " + scanCount + " scans", Toast.LENGTH_LONG).show();
@@ -536,10 +536,10 @@ public class DataCollectionActivity extends AppCompatActivity {
                     
                     runOnUiThread(() -> {
                         if (response.isSuccessful()) {
-                            addLog("✓ Scan #" + scanCount + " enviado com sucesso");
+                            addLog(" Scan #" + scanCount + " enviado com sucesso");
                             addLog("  Resposta: " + responseBody);
                         } else {
-                            addLog("✗ ERRO: HTTP " + responseCode);
+                            addLog(" ERRO: HTTP " + responseCode);
                             addLog("  Resposta: " + responseBody);
                         }
                     });
@@ -615,7 +615,7 @@ public class DataCollectionActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 runOnUiThread(() -> {
-                    addLog("✗ ERRO: " + e.getMessage());
+                    addLog(" ERRO: " + e.getMessage());
                     Toast.makeText(DataCollectionActivity.this, 
                         "Erro ao verificar amostras", Toast.LENGTH_SHORT).show();
                 });
@@ -633,11 +633,11 @@ public class DataCollectionActivity extends AppCompatActivity {
                             int minRequired = json.getInt("min_required");
                             boolean canTrain = json.getBoolean("can_train");
 
-                            addLog("📊 Amostras encontradas: " + sampleCount + "/" + minRequired);
+                            addLog(" Amostras encontradas: " + sampleCount + "/" + minRequired);
 
                             if (canTrain) {
-                                addLog("✓ Quantidade suficiente!");
-                                addLog("🚀 Iniciando treinamento...");
+                                addLog(" Quantidade suficiente!");
+                                addLog(" Iniciando treinamento...");
                                 startTraining(roomLabel, serverUrl);
                             } else {
                                 int needed = minRequired - sampleCount;
@@ -647,12 +647,12 @@ public class DataCollectionActivity extends AppCompatActivity {
                                     Toast.LENGTH_LONG).show();
                             }
                         } else {
-                            addLog("✗ ERRO: HTTP " + response.code());
+                            addLog(" ERRO: HTTP " + response.code());
                             Toast.makeText(DataCollectionActivity.this,
                                 "Erro ao verificar amostras", Toast.LENGTH_SHORT).show();
                         }
                     } catch (JSONException e) {
-                        addLog("✗ ERRO ao processar resposta: " + e.getMessage());
+                        addLog(" ERRO ao processar resposta: " + e.getMessage());
                     }
                 });
             }
@@ -668,7 +668,7 @@ public class DataCollectionActivity extends AppCompatActivity {
         buttonTrainModel.setEnabled(false);
 
         addLog("========================================");
-        addLog("🤖 TREINAMENTO DO MODELO");
+        addLog("TREINAMENTO DO MODELO");
         addLog("========================================");
 
         // Criar request para treinar
@@ -682,7 +682,7 @@ public class DataCollectionActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 runOnUiThread(() -> {
-                    addLog("✗ ERRO: " + e.getMessage());
+                    addLog(" ERRO: " + e.getMessage());
                     Toast.makeText(DataCollectionActivity.this,
                         "Erro ao treinar modelo", Toast.LENGTH_SHORT).show();
                     buttonStartCollection.setEnabled(true);
@@ -713,14 +713,14 @@ public class DataCollectionActivity extends AppCompatActivity {
                                     
                                 } else if (type.equals("error")) {
                                     String message = json.getString("message");
-                                    addLog("⚠️ " + message);
+                                    addLog("[ERRO] " + message);
                                     
                                 } else                                 if (type.equals("complete")) {
                                     boolean success = json.getBoolean("success");
                                     
                                     if (success) {
                                         addLog("========================================");
-                                        addLog("✓ TREINAMENTO CONCLUÍDO COM SUCESSO!");
+                                        addLog("TREINAMENTO CONCLUÍDO COM SUCESSO!");
                                         addLog("========================================");
                                         
                                         // Extrair informações do treinamento
@@ -739,7 +739,7 @@ public class DataCollectionActivity extends AppCompatActivity {
                                     } else {
                                         String errorMsg = json.optString("message", "Erro desconhecido");
                                         addLog("========================================");
-                                        addLog("✗ TREINAMENTO FALHOU");
+                                        addLog("TREINAMENTO FALHOU");
                                         addLog("Erro: " + errorMsg);
                                         addLog("========================================");
                                         
@@ -754,13 +754,13 @@ public class DataCollectionActivity extends AppCompatActivity {
                                 }
                                 
                             } catch (JSONException e) {
-                                addLog("⚠️ Linha inválida: " + logLine);
+                                addLog(" Linha inválida: " + logLine);
                             }
                         });
                     }
                 } catch (IOException e) {
                     runOnUiThread(() -> {
-                        addLog("✗ ERRO ao ler resposta: " + e.getMessage());
+                        addLog("ERRO ao ler resposta: " + e.getMessage());
                         buttonStartCollection.setEnabled(true);
                         buttonTrainModel.setEnabled(true);
                     });

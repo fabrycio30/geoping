@@ -9,24 +9,31 @@ Sistema de exibição de informações técnicas do treinamento do modelo com **
 ## 📋 Estrutura Implementada
 
 ### Nível 1: BÁSICO (sempre visível)
+
 Card "Resumo do Treinamento"
+
 - Amostras utilizadas
 - Redes Wi-Fi únicas (BSSIDs)
 - Limiar de decisão
 - Método do limiar
 
 ### Nível 2: INTERMEDIÁRIO (sempre visível)
+
 Card "Como Interpretar os Resultados"
+
 - Explicação do funcionamento do One-Class Classification
 - Critério de classificação (erro < limiar vs erro > limiar)
 - Detalhes sobre método IQR e robustez
 
 Descrições dos Gráficos
+
 - Training History: explicação das curvas loss
 - Reconstruction Errors: interpretação do histograma
 
 ### Nível 3: AVANÇADO (expansível)
+
 Card "Detalhes Técnicos" (clicável)
+
 - Arquitetura do modelo (encoder, latent space, decoder)
 - Hiperparâmetros (épocas, batch size, validation split, etc.)
 - Cálculo detalhado do limiar (fórmula IQR)
@@ -94,6 +101,7 @@ startActivity(intent);
 **Novos componentes:**
 
 #### Card 1: Resumo do Treinamento
+
 ```xml
 <TextView
     android:id="@+id/textViewTrainingSummary"
@@ -102,13 +110,15 @@ startActivity(intent);
 ```
 
 #### Card 2: Como Interpretar
+
 ```xml
 <TextView
     android:id="@+id/textViewInterpretation"
-    android:text="O modelo aprendeu a assinatura radioeletrica..."/>
+    android:text="O modelo aprendeu a assinatura..."/>
 ```
 
 #### Card 3: Detalhes Técnicos (Expansível)
+
 ```xml
 <TextView
     android:id="@+id/textViewTechnicalHeader"
@@ -122,6 +132,7 @@ startActivity(intent);
 ```
 
 #### Descrições dos Gráficos (Melhoradas)
+
 - Training History: explica training loss vs validation loss, overfitting
 - Reconstruction Errors: explica histograma, limiar, interpretação
 
@@ -134,9 +145,11 @@ startActivity(intent);
 **Novos métodos:**
 
 #### `populateTrainingInfo()`
+
 Processa o JSON de `training_info` e preenche os 3 níveis:
 
 **Nível Básico:**
+
 ```java
 "• Amostras utilizadas: 79 scans\n"
 "• Redes Wi-Fi unicas: 306 BSSIDs\n"
@@ -145,6 +158,7 @@ Processa o JSON de `training_info` e preenche os 3 níveis:
 ```
 
 **Nível Intermediário:**
+
 ```java
 "O modelo aprendeu a assinatura radioeletrica desta sala usando "
 "One-Class Classification (Autoencoder).\n\n"
@@ -157,6 +171,7 @@ Processa o JSON de `training_info` e preenche os 3 níveis:
 ```
 
 **Nível Avançado:**
+
 ```java
 "ARQUITETURA DO MODELO\n"
 "─────────────────────\n"
@@ -188,11 +203,13 @@ Processa o JSON de `training_info` e preenche os 3 níveis:
 ```
 
 #### `toggleTechnicalDetails()`
+
 Expande/colapsa a seção de detalhes técnicos ao clicar:
+
 ```java
 private void toggleTechnicalDetails() {
     technicalDetailsExpanded = !technicalDetailsExpanded;
-    
+  
     if (technicalDetailsExpanded) {
         textViewTechnicalDetails.setVisibility(View.VISIBLE);
         textViewTechnicalHeader.setText("Detalhes Tecnicos ▲");
@@ -267,18 +284,21 @@ private void toggleTechnicalDetails() {
 ## ✅ Características Implementadas
 
 ### Linguagem
+
 - ✓ Técnica e precisa
 - ✓ Formato em bullets
 - ✓ Direta e clara
 - ✓ **SEM emojis** (conforme solicitado)
 
 ### UX
+
 - ✓ Informação em 3 níveis (básico → intermediário → avançado)
 - ✓ Detalhes técnicos colapsáveis (reduz scroll)
 - ✓ Descrições educacionais dos gráficos
 - ✓ Fonte monospace para dados numéricos
 
 ### Conteúdo
+
 - ✓ Resumo executivo (amostras, BSSIDs, limiar)
 - ✓ Explicação didática (como funciona)
 - ✓ Arquitetura completa do modelo
@@ -291,19 +311,19 @@ private void toggleTechnicalDetails() {
 ## 🧪 Como Testar
 
 1. **Reiniciar backend:**
+
    ```bash
    cd backend
    npm start
    ```
-
 2. **Recompilar app no Android Studio** (Run ▶)
-
 3. **Treinar modelo:**
+
    - Coletar 30+ amostras
    - Clicar em "TREINAR MODELO DA SALA"
    - Aguardar conclusão
-
 4. **Verificar tela de resultados:**
+
    - Card de resumo preenchido ✓
    - Card de interpretação com limiar correto ✓
    - Card de detalhes técnicos colapsado (padrão)
@@ -315,6 +335,7 @@ private void toggleTechnicalDetails() {
 ## 📊 Dados Exibidos
 
 ### Sempre Visíveis
+
 - Amostras utilizadas
 - BSSIDs únicos
 - Limiar de decisão
@@ -322,6 +343,7 @@ private void toggleTechnicalDetails() {
 - Descrições dos gráficos
 
 ### Expansíveis (click to show)
+
 - Arquitetura detalhada (input → encoder → latent → decoder → output)
 - Hiperparâmetros completos
 - Fórmula matemática do limiar
@@ -332,10 +354,10 @@ private void toggleTechnicalDetails() {
 ## ✅ Resultado Final
 
 Usuário agora tem **contexto completo** sobre:
+
 1. **O que foi treinado** (quantas amostras, quantas redes)
 2. **Como funciona** (conceito de One-Class, limiar)
 3. **Qualidade** (gráficos com interpretação)
 4. **Detalhes técnicos** (arquitetura, hiperparâmetros) para reprodutibilidade
 
 **Linguagem técnica, sem emojis, direta e profissional.** ✓
-

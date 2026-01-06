@@ -1,7 +1,5 @@
-// ================================================================================
 // Backend GeoPing - Servidor Node.js + Express
 // Sistema de Localização Indoor usando One-Class Classification (Autoencoder)
-// ================================================================================
 
 // Carregar variáveis de ambiente do arquivo .env
 require('dotenv').config();
