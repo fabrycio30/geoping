@@ -1,36 +1,38 @@
-# GeoPing v2.0 
+# GeoPing
 
-Sistema de localização indoor em tempo real usando Wi-Fi fingerprinting e One-Class Classification com Autoencoders.
+Sistema de localização indoor em tempo real usando sinais de Wi-Fi e One-Class Classification com Autoencoders.
 
 ## Visão Geral
 
-GeoPing é um sistema completo para detecção de presença indoor baseado em assinatura Wi-Fi:
+GeoPing é um sistema completo para detecção de presença indoor baseado em assinatura de redes Wi-Fi:
 
-- **App Android**: Coleta de dados Wi-Fi (RSSI + BSSID) e interface para treinamento
-- **Backend Node.js**: API REST para persistência de dados e execução de treinamento
+- **App Android**:
+  - Coleta de dados Wi-Fi (RSSI + BSSID) e interface para treinamento do modelo padrão da sala. Utilização de arquitetura autoencoder para treinamento (One-Class Classification - Dentro ou fora da sala)
+- **Backend Node.js**: API REST para persistência de dados e execução de treinamento,  inferencias e chat com usuários indoor.
 - **ML Python**: Autoencoder para classificação One-Class (usuário DENTRO ou FORA da sala)
-- **Database PostgreSQL**: Armazenamento de fingerprints e modelos treinados
+- **Database PostgreSQL**: Armazenamento de fingerprints e modelos treinados (ainda não implementado)
 
 ## Tecnologias
 
 ### Mobile
+
 - Android Native (Java)
-- OkHttp para requisições HTTP
-- WifiManager para scan de redes
 
 ### Backend
+
 - Node.js + Express
 - PostgreSQL com JSONB
-- Socket.io (para expansão futura)
+- Socket.io
 
 ### Machine Learning
+
 - Python 3.11
 - TensorFlow/Keras (Autoencoder)
 - Scikit-Learn (pré-processamento)
 - Pandas/NumPy (manipulação de dados)
 - Matplotlib (visualização)
 
-## Quick Start
+## Instalação e Especificações Técnicas
 
 ### 1. Database (PostgreSQL)
 
@@ -79,20 +81,23 @@ pip install -r requirements.txt
 ## Funcionalidades
 
 ### Coleta de Dados
-- Scan automático de redes Wi-Fi
-- Envio de fingerprints para backend
-- Log detalhado em tempo real
-- Contador de scans
+
+- Escaneamento automático de redes Wi-Fi (no mínimo 30 pontos)
+- Envio das amostras coletadas para backend/banco de dados
+- Log detalhado em tempo real da coleta
+- Contador de amostras e redes
 
 ### Treinamento
+
 - Botão integrado no app
 - Validação de quantidade mínima de amostras (30)
 - Logs de treinamento em tempo real
 - Exibição de resultados gráficos
 
 ### Resultados do Treinamento
+
 - Resumo: amostras, BSSIDs, limiar
-- Interpretação: como funciona o modelo
+- Interpretação: como funciona o modelo e tal
 - Gráficos: histórico de loss e distribuição de erros
 - Detalhes técnicos: arquitetura, hiperparâmetros, cálculo do limiar
 
@@ -103,7 +108,7 @@ Input (N features)
     ↓
 Encoder: 64 → 32 neurônios
     ↓
-Latent Space: 16 dimensões
+Espaco Latente: 16 dimensões
     ↓
 Decoder: 32 → 64 neurônios
     ↓
@@ -111,6 +116,7 @@ Output (N features)
 ```
 
 ### Hiperparâmetros Padrão
+
 - Épocas: 100
 - Batch size: 32
 - Validation split: 20%
@@ -118,17 +124,11 @@ Output (N features)
 - Otimizador: Adam
 - Loss: MSE (Mean Squared Error)
 
-### Thresholding
+### Threshold
+
 - Método: IQR (Interquartile Range)
 - Fórmula: `threshold = Q3 + 1.5 × IQR`
 - Robusto contra outliers
-
-## Documentação
-
-- **SETUP_WINDOWS.md**: Instalação completa no Windows
-- **QUICKSTART.md**: Guia rápido de uso
-- **ARCHITECTURE.md**: Detalhes técnicos do sistema
-- **PROJECT_STRUCTURE.md**: Organização dos arquivos
 
 ## Estrutura do Projeto
 
@@ -162,54 +162,56 @@ geoping/
 └── docs/                  # Documentação
 ```
 
-## Fluxo de Uso
+## Procedimentos para a utilização
 
 ### 1. Coleta de Dados
+
 1. Abrir app Android
 2. Preencher nome da sala e URL do servidor
 3. Clicar em "INICIAR COLETA"
-4. Aguardar 30+ scans
+4. Aguardar 30+ coletas
 5. Clicar em "PARAR COLETA"
 
 ### 2. Treinamento
+
 1. Clicar em "TREINAR MODELO DA SALA"
 2. Aguardar processo (exibe logs em tempo real)
 3. Visualizar resultados gráficos
+4. Salvar o modelo para inferência
 
 ### 3. Inferência (Futura)
+
 - Usar `ml/predict.py` para classificar novos scans
-- Retorna: DENTRO ou FORA da sala
+- Retorna a decisão: DENTRO ou FORA da sala
 
 ## Requisitos
 
 ### Hardware
+
 - Android 8.0+ (API 26+)
-- PC com PostgreSQL
+- Servidor com PostgreSQL (Estamos utilizando um servidr localmente para os testes)
 
 ### Software
+
 - Node.js 16+
 - Python 3.11
 - PostgreSQL 14+
-- Android Studio (para compilar app)
+- Android Studio (utilizando para compilar app). Utilizando smartphones para os testes finais dada as limitações dos emuladores.
 
 ## Versões
 
 ### v2.0 (Atual)
-- Sistema completo de coleta e treinamento
+
+- Sistema com modelos completo de coleta e treinamento
 - Integração app-backend-ML
 - Exibição de resultados com detalhes técnicos
-- Documentação completa
 
 ### v1.0 (Antiga - branch `backup-versao-antiga`)
-- Protótipo inicial
+
+- Protótipo inicial para os milestones anteriores
 - Chat com detecção de salas por Wi-Fi
 - Interface básica
 
-## Autor
-
-Desenvolvido como projeto acadêmico - UFMA (Universidade Federal do Maranhão)
-
 ## Licença
 
-MIT License - Uso livre para fins acadêmicos e educacionais
-
+ainda não definida
