@@ -1,6 +1,5 @@
 # GeoPing - Plataforma Móvel para Comunicação Delimitada por Proximidade Geográfica
 
-
 ## Visão Geral
 
 GeoPing é um sistema completo para detecção de presença indoor baseado em assinatura de redes Wi-Fi:
@@ -133,33 +132,83 @@ Output (N features)
 ## Estrutura do Projeto
 
 ```
-geoping/
-├── android/                # App Android nativo
-│   └── app/
-│       ├── src/main/
-│       │   ├── java/com/geoping/datacollection/
-│       │   │   ├── DataCollectionActivity.java
-│       │   │   └── TrainingResultsActivity.java
-│       │   └── res/layout/
-│       │       ├── activity_data_collection.xml
-│       │       └── activity_training_results.xml
-│       └── build.gradle
+geoping_v2/
 │
-├── backend/                # API REST
-│   ├── server.js          # Express + rotas
-│   ├── package.json
-│   └── .env               # Configurações (não versionado)
-│
-├── ml/                    # Machine Learning
-│   ├── train_autoencoder.py
-│   ├── predict.py
-│   ├── requirements.txt
-│   └── models/            # Modelos salvos
+├── backend/
+│   ├── server.js                  // Express + Socket.io
+│   ├── routes/
+│   │   ├── auth.js                // Registro/Login
+│   │   ├── rooms.js               // CRUD de salas
+│   │   ├── presence.js            // Atualização de presença
+│   │   └── messages.js            // Conversas e mensagens
+│   ├── middleware/
+│   │   └── auth.js                // Autenticação JWT
+│   ├── package.json               // Dependências
+│   └── .env                       // Variáveis de ambiente
 │
 ├── database/
-│   └── init.sql           # Schema PostgreSQL
+│   ├── init.sql                   // Tabela wifi_training_data
+│   ├── schema_v2.sql              // Tabelas de usuários/salas/mensagens
+│   └── init_complete.sql          // Schema completo unificado
 │
-└── docs/                  # Documentação
+├── ml/
+│   ├── train_autoencoder.py      // Treinamento do modelo
+│   ├── predict.py                 // Predição offline
+│   ├── predict_realtime.py        // Predição em tempo real (stdin/stdout)
+│   ├── requirements.txt           // Dependências Python
+│   └── models/                    // Modelos treinados (.h5, .pkl, .json)
+│
+├── android/
+│   └── app/src/main/
+│       ├── AndroidManifest.xml    // Permissões e activities
+│       ├── java/com/geoping/
+│       │   ├── app/
+│       │   │   ├── LoginActivity.java              //
+│       │   │   ├── RegisterActivity.java           //
+│       │   │   ├── MainActivity.java               //
+│       │   │   ├── CreateRoomActivity.java         //
+│       │   │   ├── SearchRoomActivity.java         //
+│       │   │   ├── RoomDataCollectionActivity.java //
+│       │   │   ├── RoomTrainingResultsActivity.java//
+│       │   │   ├── RoomManagementActivity.java     //
+│       │   │   ├── ChatActivity.java               //
+│       │   │   ├── ConversationActivity.java       //
+│       │   │   ├── models/
+│       │   │   │   ├── Room.java                   //
+│       │   │   │   ├── Conversation.java           //
+│       │   │   │   └── Message.java                //
+│       │   │   ├── adapters/
+│       │   │   │   ├── RoomAdapter.java            //
+│       │   │   │   ├── SearchResultAdapter.java    //
+│       │   │   │   ├── ConversationAdapter.java    //
+│       │   │   │   └── MessageAdapter.java         //
+│       │   │   ├── utils/
+│       │   │   │   ├── AuthManager.java            //
+│       │   │   │   ├── ApiClient.java              //
+│       │   │   │   └── SocketManager.java          //
+│       │   │   └── services/
+│       │   │       └── PresenceService.java        //
+│       │   └── datacollection/
+│       │       ├── DataCollectionActivity.java     // (Modo Dev)
+│       │       └── TrainingResultsActivity.java    // (Modo Dev)
+│       └── res/
+│           └── layout/
+│               ├── activity_login.xml              //
+│               ├── activity_register.xml           //
+│               ├── activity_main.xml               //
+│               ├── activity_create_room.xml        //
+│               ├── activity_search_room.xml        //
+│               ├── activity_room_data_collection.xml //
+│               ├── activity_room_training_results.xml //
+│               ├── activity_room_management.xml    //
+│               ├── activity_chat.xml               //
+│               ├── activity_conversation.xml       //
+│               ├── item_room.xml                   //
+│               ├── item_search_result.xml          //
+│               ├── item_conversation.xml           //
+│               └── item_message.xml                //
+│
+└── Doc
 ```
 
 ## Procedimentos para a utilização
