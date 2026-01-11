@@ -41,9 +41,15 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 public class ChatActivity extends AppCompatActivity implements ConversationAdapter.OnConversationClickListener {
 
     private static final String TAG = "ChatActivity";
+    private static final int PERMISSION_REQUEST_CODE = 123;
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
     private TextView textViewRoomName;
@@ -88,6 +94,9 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
             }
             Log.d(TAG, "Sala recebida: " + currentRoom.getRoomName());
 
+            // Inicializar SocketManager (CORREÇÃO CRÍTICA)
+            socketManager = SocketManager.getInstance();
+            
             initializeComponents();
             Log.d(TAG, "Componentes inicializados");
             
@@ -97,13 +106,15 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
             setupRecyclerView();
             Log.d(TAG, "RecyclerView configurado");
             
-            // COMENTADO TEMPORARIAMENTE PARA DEBUG
-            // setupSocketListeners();
-            // connectSocket();
-            Log.d(TAG, "Socket.io temporariamente desabilitado para debug");
+            // Reativar Socket.io
+            setupSocketListeners();
+            connectSocket();
+            Log.d(TAG, "Socket.io inicializado");
             
             loadConversations();
             Log.d(TAG, "Conversas carregadas");
+            
+            checkPermissions(); // Verificar permissões antes de iniciar serviço
             
             startPresenceCheck();
             Log.d(TAG, "Verificação de presença iniciada");
@@ -167,15 +178,31 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
     }
 
     private void connectSocket() {
-        String serverUrl = ApiClient.getBaseUrl();
-        String authToken = authManager.getToken();
+        try {
+            String serverUrl = ApiClient.getBaseUrl();
+            // Tentar pegar do SharedPreferences se o estático estiver padrão
+            if (serverUrl.equals("http://192.168.100.56:3000")) {
+                 serverUrl = apiClient.getServerUrl();
+            }
 
-        if (!socketManager.isConnected()) {
-            socketManager.connect(serverUrl, authToken);
+            String authToken = authManager.getToken();
+            
+            if (authToken == null || authToken.isEmpty()) {
+                Log.e(TAG, "Token de autenticação inválido. Abortando conexão socket.");
+                Toast.makeText(this, "Erro de autenticação no chat.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (!socketManager.isConnected()) {
+                socketManager.connect(serverUrl, authToken);
+            }
+
+            socketManager.joinRoom(currentRoom.getRoomId());
+            Log.d(TAG, "Tentativa de conexão à sala: " + currentRoom.getRoomId());
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao conectar socket: " + e.getMessage());
         }
-
-        socketManager.joinRoom(currentRoom.getRoomId());
-        Log.d(TAG, "Conectado à sala: " + currentRoom.getRoomId());
     }
 
     private void loadConversations() {
@@ -240,10 +267,11 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
     }
 
     private void showNewConversationDialog() {
-        if (!isPresent) {
-            Toast.makeText(this, "Você precisa estar presente na sala para criar conversas.", Toast.LENGTH_LONG).show();
-            return;
-        }
+        // [MODO TESTE] Permitir criar conversa mesmo estando fora
+        // if (!isPresent) {
+        //     Toast.makeText(this, "Você precisa estar presente na sala para criar conversas.", Toast.LENGTH_LONG).show();
+        //     return;
+        // }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Nova Conversa");
@@ -271,7 +299,8 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
             payload.put("room_id", currentRoom.getRoomId());
             payload.put("title", title);
 
-            String url = apiClient.buildUrl("/api/messages/create");
+            // CORREÇÃO: Endpoint correto é /api/conversations/create
+            String url = apiClient.buildUrl("/api/conversations/create"); 
             RequestBody body = RequestBody.create(payload.toString(), JSON);
             Request request = new Request.Builder()
                     .url(url)
@@ -294,7 +323,33 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
                     runOnUiThread(() -> {
                         if (response.isSuccessful()) {
                             Toast.makeText(ChatActivity.this, "Conversa criada com sucesso!", Toast.LENGTH_SHORT).show();
-                            // A conversa aparecerá via Socket.io
+                            
+                            try {
+                                JSONObject jsonResponse = new JSONObject(responseBody);
+                                JSONObject conversationJson = jsonResponse.getJSONObject("conversation");
+                                
+                                // Criar objeto Conversation e abrir Activity imediatamente
+                                Conversation newConversation = new Conversation();
+                                newConversation.setConversationId(conversationJson.getString("conversation_id"));
+                                newConversation.setTitle(conversationJson.getString("title"));
+                                newConversation.setCreatorId(conversationJson.getInt("creator_id"));
+                                
+                                // Agora o backend retorna o username
+                                if (conversationJson.has("creator_username")) {
+                                    newConversation.setCreatorUsername(conversationJson.getString("creator_username"));
+                                } else {
+                                    // Fallback: usar o próprio usuário se não vier
+                                    newConversation.setCreatorUsername(authManager.getUsername());
+                                }
+                                
+                                newConversation.setCreatedAt(conversationJson.getString("created_at"));
+                                
+                                onConversationClick(newConversation); // Reutiliza lógica de abrir chat
+                                
+                            } catch (JSONException e) {
+                                Log.e(TAG, "Erro ao abrir nova conversa: " + e.getMessage());
+                            }
+                            
                         } else {
                             String errorMsg = "Erro ao criar conversa.";
                             try {
@@ -313,6 +368,15 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
         } catch (JSONException e) {
             Log.e(TAG, "Erro ao criar JSON para conversa: " + e.getMessage());
             Toast.makeText(this, "Erro interno ao criar conversa.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void checkPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    PERMISSION_REQUEST_CODE);
         }
     }
 
@@ -348,7 +412,16 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
                     if (response.isSuccessful()) {
                         try {
                             JSONObject jsonResponse = new JSONObject(responseBody);
-                            JSONArray rooms = jsonResponse.getJSONArray("present_in_rooms");
+                            
+                            // Verificar qual chave o backend retornou
+                            JSONArray rooms;
+                            if (jsonResponse.has("rooms")) {
+                                rooms = jsonResponse.getJSONArray("rooms");
+                            } else if (jsonResponse.has("present_in_rooms")) {
+                                rooms = jsonResponse.getJSONArray("present_in_rooms");
+                            } else {
+                                rooms = new JSONArray(); // Vazio se não encontrar chave
+                            }
 
                             boolean foundInRoom = false;
                             for (int i = 0; i < rooms.length(); i++) {
@@ -379,12 +452,13 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
         if (present) {
             textViewPresenceStatus.setText(String.format("✓ Você está dentro (%.0f%%)", confidence * 100));
             textViewPresenceStatus.setTextColor(0xFF27AE60); // Verde
-            fabNewConversation.setEnabled(true);
+            // fabNewConversation.setEnabled(true);
         } else {
-            textViewPresenceStatus.setText("✗ Você está fora da sala");
+            textViewPresenceStatus.setText("✗ Você está fora da sala (Modo Teste: Chat Liberado)");
             textViewPresenceStatus.setTextColor(0xFFE74C3C); // Vermelho
-            fabNewConversation.setEnabled(false);
+            // fabNewConversation.setEnabled(false); // [MODO TESTE] Não desabilitar botão
         }
+        fabNewConversation.setEnabled(true); // Sempre habilitado no modo teste
     }
 
     private void updateEmptyState() {

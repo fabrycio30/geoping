@@ -92,8 +92,18 @@ public class PresenceService extends Service {
 
             Log.d(TAG, "Iniciando monitoramento de presença para sala: " + currentRoomName);
 
-            startForeground(NOTIFICATION_ID, createNotification("Iniciando..."));
-            startPresenceMonitoring();
+            try {
+                if (Build.VERSION.SDK_INT >= 34) { // Android 14+
+                    startForeground(NOTIFICATION_ID, createNotification("Iniciando..."), 
+                                  android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
+                } else {
+                    startForeground(NOTIFICATION_ID, createNotification("Iniciando..."));
+                }
+                startPresenceMonitoring();
+            } catch (Exception e) {
+                Log.e(TAG, "Erro ao iniciar Foreground Service: " + e.getMessage());
+                stopSelf(); // Parar serviço se não conseguir iniciar foreground
+            }
 
             return START_STICKY;
         }

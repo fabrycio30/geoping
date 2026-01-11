@@ -22,6 +22,7 @@ public class SocketManager {
     private Socket socket;
     private boolean isConnected = false;
     private String currentRoomId;
+    private String savedAuthToken; // Token salvo para reconexão
 
     private SocketManager() {}
 
@@ -36,15 +37,34 @@ public class SocketManager {
      * Conectar ao servidor Socket.io
      */
     public void connect(String serverUrl, String authToken) {
+        this.savedAuthToken = authToken; // Salvar token
+
         if (socket != null && socket.connected()) {
-            Log.d(TAG, "Já conectado");
+            Log.d(TAG, "Já conectado, re-autenticando...");
+            if (authToken != null) {
+                socket.emit("authenticate", authToken);
+            }
             return;
+        }
+        
+        // Se socket existe mas está desconectado, ou é nulo
+        if (socket != null) {
+            try {
+                socket.disconnect();
+                socket.close(); // Forçar limpeza
+            } catch (Exception e) {
+                Log.e(TAG, "Erro ao fechar socket anterior: " + e.getMessage());
+            }
+            socket = null;
         }
 
         try {
             IO.Options options = IO.Options.builder()
-                    .setForceNew(false)
+                    .setForceNew(true) // Forçar nova conexão
                     .setReconnection(true)
+                    .setReconnectionAttempts(5) // Limitar tentativas para evitar loop infinito
+                    .setReconnectionDelay(1000)
+                    .setTimeout(10000)
                     .build();
 
             socket = IO.socket(serverUrl, options);
@@ -53,8 +73,12 @@ public class SocketManager {
                 isConnected = true;
                 Log.d(TAG, "Socket.io conectado");
                 
-                // Autenticar
-                socket.emit("authenticate", authToken);
+                // Autenticar com o token salvo
+                if (savedAuthToken != null) {
+                    socket.emit("authenticate", savedAuthToken);
+                } else {
+                    Log.e(TAG, "Token de autenticação não encontrado!");
+                }
             });
 
             socket.on(Socket.EVENT_DISCONNECT, args -> {

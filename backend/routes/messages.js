@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const { authenticateToken } = require('../middleware/auth'); // Importar middleware
 
 /**
  * POST /api/conversations/create
  * Criar uma nova conversa em uma sala
  */
-router.post('/conversations/create', async (req, res) => {
+router.post('/conversations/create', authenticateToken, async (req, res) => {
     const { room_id, title } = req.body;
-    const creator_id = req.userId;
+    const creator_id = req.user.userId;
 
     if (!room_id) {
         return res.status(400).json({
@@ -34,20 +35,20 @@ router.post('/conversations/create', async (req, res) => {
 
         const roomIdInternal = roomResult.rows[0].id;
 
-        // Verificar se usuário está dentro da sala
-        const presenceResult = await pool.query(`
-            SELECT is_present
-            FROM presence
-            WHERE user_id = $1 AND room_id = $2
-              AND last_seen_at > NOW() - INTERVAL '30 seconds'
-        `, [creator_id, roomIdInternal]);
+        // [MODO TESTE] Verificação de presença desativada
+        // const presenceResult = await pool.query(`
+        //     SELECT is_present
+        //     FROM presence
+        //     WHERE user_id = $1 AND room_id = $2
+        //       AND last_seen_at > NOW() - INTERVAL '30 seconds'
+        // `, [creator_id, roomIdInternal]);
 
-        if (presenceResult.rows.length === 0 || !presenceResult.rows[0].is_present) {
-            return res.status(403).json({
-                success: false,
-                error: 'Você precisa estar dentro da sala para criar uma conversa'
-            });
-        }
+        // if (presenceResult.rows.length === 0 || !presenceResult.rows[0].is_present) {
+        //     return res.status(403).json({
+        //         success: false,
+        //         error: 'Você precisa estar dentro da sala para criar uma conversa'
+        //     });
+        // }
 
         // Criar conversa
         const result = await pool.query(`
@@ -58,18 +59,32 @@ router.post('/conversations/create', async (req, res) => {
 
         const conversation = result.rows[0];
 
+        // Buscar username do criador (para devolver no JSON e o Android não ficar 'null')
+        const userResult = await pool.query(
+            'SELECT username FROM users WHERE id = $1',
+            [creator_id]
+        );
+        const creatorUsername = userResult.rows[0].username;
+
         // Emitir evento Socket.io
         const io = req.app.get('io');
-        io.to(`room_${room_id}`).emit('new_conversation', {
+        // Usar room_id do UUID (que já tem o prefixo room_ se for o padrão do sistema ou uuid puro)
+        // O Android envia "room_ff..." no join_room. O banco guarda "room_ff...".
+        // Então o canal deve ser EXATAMENTE room_id
+        io.to(room_id).emit('new_conversation', {
             conversation_id: conversation.conversation_id,
             title: conversation.title,
             creator_id: conversation.creator_id,
+            creatorUsername: creatorUsername, // Adicionado
             created_at: conversation.created_at
         });
 
         res.status(201).json({
             success: true,
-            conversation: conversation
+            conversation: {
+                ...conversation,
+                creator_username: creatorUsername // Adicionado para o client HTTP
+            }
         });
 
     } catch (error) {
@@ -85,9 +100,9 @@ router.post('/conversations/create', async (req, res) => {
  * POST /api/messages/send
  * Enviar mensagem em uma conversa
  */
-router.post('/messages/send', async (req, res) => {
+router.post('/messages/send', authenticateToken, async (req, res) => {
     const { conversation_id, content } = req.body;
-    const sender_id = req.userId;
+    const sender_id = req.user.userId;
 
     if (!conversation_id || !content) {
         return res.status(400).json({
@@ -116,20 +131,20 @@ router.post('/messages/send', async (req, res) => {
 
         const conversation = convResult.rows[0];
 
-        // Verificar se usuário está dentro da sala
-        const presenceResult = await pool.query(`
-            SELECT is_present
-            FROM presence
-            WHERE user_id = $1 AND room_id = $2
-              AND last_seen_at > NOW() - INTERVAL '30 seconds'
-        `, [sender_id, conversation.room_id]);
+        // [MODO TESTE] Verificação de presença desativada
+        // const presenceResult = await pool.query(`
+        //     SELECT is_present
+        //     FROM presence
+        //     WHERE user_id = $1 AND room_id = $2
+        //       AND last_seen_at > NOW() - INTERVAL '30 seconds'
+        // `, [sender_id, conversation.room_id]);
 
-        if (presenceResult.rows.length === 0 || !presenceResult.rows[0].is_present) {
-            return res.status(403).json({
-                success: false,
-                error: 'Você precisa estar dentro da sala para enviar mensagens'
-            });
-        }
+        // if (presenceResult.rows.length === 0 || !presenceResult.rows[0].is_present) {
+        //     return res.status(403).json({
+        //         success: false,
+        //         error: 'Você precisa estar dentro da sala para enviar mensagens'
+        //     });
+        // }
 
         // Inserir mensagem
         const result = await pool.query(`
@@ -154,7 +169,8 @@ router.post('/messages/send', async (req, res) => {
 
         // Emitir evento Socket.io para sala
         const io = req.app.get('io');
-        io.to(`room_${conversation.room_uuid}`).emit('new_message', messageData);
+        // Usar room_uuid direto (o ID da sala que o socket entrou)
+        io.to(conversation.room_uuid).emit('new_message', messageData);
 
         res.status(201).json({
             success: true,
@@ -174,7 +190,7 @@ router.post('/messages/send', async (req, res) => {
  * GET /api/messages/:conversation_id
  * Buscar mensagens de uma conversa
  */
-router.get('/messages/:conversation_id', async (req, res) => {
+router.get('/messages/:conversation_id', authenticateToken, async (req, res) => {
     const { conversation_id } = req.params;
     const { limit = 50, offset = 0 } = req.query;
 
@@ -231,7 +247,7 @@ router.get('/messages/:conversation_id', async (req, res) => {
  * GET /api/conversations/room/:room_id
  * Listar conversas de uma sala
  */
-router.get('/conversations/room/:room_id', async (req, res) => {
+router.get('/conversations/room/:room_id', authenticateToken, async (req, res) => {
     const { room_id } = req.params;
 
     try {

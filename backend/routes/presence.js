@@ -15,7 +15,14 @@ const router = express.Router();
  */
 router.post('/update', async (req, res) => {
     const { room_id, wifi_scan_results } = req.body;
-    const user_id = req.userId; // Do middleware de autenticação
+    const user_id = req.user?.userId; // Correção: pegar do objeto req.user e usar optional chaining
+
+    if (!user_id) {
+         return res.status(401).json({
+            success: false,
+            error: 'Usuário não autenticado no contexto'
+        });
+    }
 
     if (!room_id || !wifi_scan_results) {
         return res.status(400).json({
