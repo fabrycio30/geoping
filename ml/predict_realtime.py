@@ -76,23 +76,44 @@ class RealtimePredictor:
             wifi_scan_results (list): Lista de dicts com 'bssid' e 'rssi'
             
         Returns:
-            numpy.ndarray: Vetor de features normalizado
+            tuple: (vetor de features normalizado, contagem de matches)
         """
         # Criar vetor de RSSI
         rssi_vector = np.zeros(len(self.bssids))
+        match_count = 0
         
         for network in wifi_scan_results:
-            bssid = network.get('bssid', '').upper()
+            bssid_raw = network.get('bssid', '')
             rssi = network.get('rssi', -100)
             
-            if bssid in self.bssids:
-                idx = self.bssids.index(bssid)
-                rssi_vector[idx] = rssi
-        
+            # Tentar encontrar BSSID (raw, upper ou lower) na lista do modelo
+            idx = -1
+            if bssid_raw in self.bssids:
+                idx = self.bssids.index(bssid_raw)
+            elif bssid_raw.upper() in self.bssids:
+                idx = self.bssids.index(bssid_raw.upper())
+            elif bssid_raw.lower() in self.bssids:
+                idx = self.bssids.index(bssid_raw.lower())
+            
+            if idx != -1:
+                # Aplicar mesma transformação do treino: RSSI + 100
+                rssi_vector[idx] = rssi + 100
+                match_count += 1
+            else:
+                 # Debug para entender por que não deu match (se necessário)
+                 # print(f"DEBUG: BSSID {bssid_raw} não encontrado no modelo", file=sys.stderr)
+                 pass
+
+        # Debug logs
+        print(f"DEBUG: Matches: {match_count}/{len(self.bssids)} (Scan: {len(wifi_scan_results)})", file=sys.stderr)
+        if match_count == 0:
+             print(f"DEBUG: Modelo BSSIDs (amostra): {self.bssids[:3]}...", file=sys.stderr)
+             print(f"DEBUG: Scan BSSIDs (amostra): {[n.get('bssid') for n in wifi_scan_results[:3]]}...", file=sys.stderr)
+
         # Normalizar
         rssi_vector_normalized = self.scaler.transform(rssi_vector.reshape(1, -1))
         
-        return rssi_vector_normalized
+        return rssi_vector_normalized, match_count
     
     def predict(self, wifi_scan_results):
         """
@@ -106,7 +127,10 @@ class RealtimePredictor:
         """
         try:
             # Pré-processar entrada
-            X = self.preprocess_wifi_scan(wifi_scan_results)
+            X, match_count = self.preprocess_wifi_scan(wifi_scan_results)
+            
+            # Se não houver matches significativos, provavelmente está fora
+            # Mas deixamos o modelo decidir pelo erro de reconstrução
             
             # Fazer predição (reconstrução)
             X_reconstructed = self.model.predict(X, verbose=0)
@@ -133,7 +157,9 @@ class RealtimePredictor:
                 'confidence': round(confidence, 4),
                 'reconstruction_error': round(float(mse), 6),
                 'threshold': round(float(self.threshold), 6),
-                'room_label': self.room_label
+                'room_label': self.room_label,
+                'matches': match_count,
+                'total_bssids_model': len(self.bssids)
             }
             
         except Exception as e:

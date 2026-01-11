@@ -224,6 +224,133 @@ app.post('/api/collect', async (req, res) => {
     }
 });
 
+// Rota para TESTE de inferência (Dev/Debug)
+app.post('/api/predict-test', async (req, res) => {
+    try {
+        const { room_label, wifi_scan_results } = req.body;
+
+        if (!room_label || !wifi_scan_results) {
+            return res.status(400).json({
+                error: 'Dados incompletos',
+                message: 'room_label e wifi_scan_results são obrigatórios'
+            });
+        }
+
+        console.log(`[TESTE INFERENCIA] Testando para sala: ${room_label} com ${wifi_scan_results.length} redes`);
+        
+        // Debug do payload recebido
+        // console.log('Payload recebido:', JSON.stringify(req.body).substring(0, 200));
+
+        // Caminho para o script Python
+        const pythonScript = path.join(__dirname, '..', 'ml', 'predict_realtime.py');
+        const pythonExecutable = process.platform === 'win32'
+            ? path.join(__dirname, '..', 'ml', 'venv', 'Scripts', 'python.exe')
+            : path.join(__dirname, '..', 'ml', 'venv', 'bin', 'python');
+
+        // Verificar se o script existe
+        if (!fs.existsSync(pythonScript)) {
+            return res.status(500).json({ error: 'Script de inferência não encontrado' });
+        }
+
+        // Executar o script Python
+        const mlDirectory = path.join(__dirname, '..', 'ml');
+        
+        // Definir variáveis de ambiente para suprimir logs do TensorFlow
+        const env = { 
+            ...process.env, 
+            TF_CPP_MIN_LOG_LEVEL: '2', // Suprimir INFO e WARNING
+            TF_ENABLE_ONEDNN_OPTS: '0' // Desativar oneDNN logs
+        };
+
+        const pythonProcess = spawn(pythonExecutable, [pythonScript], {
+            cwd: mlDirectory,
+            env: env
+        });
+
+        let outputBuffer = '';
+        let errorBuffer = '';
+
+        // Enviar dados para o script via stdin
+        const inputData = JSON.stringify({
+            room_label: room_label,
+            wifi_scan_results: wifi_scan_results
+        });
+
+        pythonProcess.stdin.write(inputData);
+        pythonProcess.stdin.end();
+
+        pythonProcess.stdout.on('data', (data) => {
+            outputBuffer += data.toString();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+            errorBuffer += data.toString();
+        });
+
+        pythonProcess.on('close', (code) => {
+            // Tentar capturar mensagem de erro do stdout se houver (o script Python imprime JSON de erro no stdout)
+            let result = null;
+            try {
+                // O script pode imprimir logs antes do JSON, então pegamos a última linha válida
+                const lines = outputBuffer.trim().split('\n');
+                // Procurar de trás pra frente por um JSON válido
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    try {
+                        const potentialJson = JSON.parse(lines[i]);
+                        // Verificar se é um JSON de resposta esperado (sucesso ou erro tratado pelo script)
+                        if (potentialJson.success !== undefined) {
+                            result = potentialJson;
+                            break;
+                        }
+                    } catch (e) {
+                        // Ignora linhas que não são JSON
+                    }
+                }
+            } catch (e) {
+                // Erro ao tentar parsear outputBuffer
+            }
+
+            if (code !== 0) {
+                // Se temos um resultado JSON do script (ex: erro tratado), retornamos ele
+                if (result && !result.success) {
+                     console.error(`[TESTE INFERENCIA] Erro reportado pelo script: ${result.error}`);
+                     return res.status(400).json({
+                         error: result.error,
+                         details: 'O script Python retornou um erro tratado.'
+                     });
+                }
+
+                // Se não tem JSON, usamos o stderr
+                console.error(`[TESTE INFERENCIA] Falha no processo Python (code ${code}): ${errorBuffer}`);
+                return res.status(500).json({
+                    error: 'Erro na execução do modelo (Processo falhou)',
+                    details: errorBuffer || outputBuffer // Tenta stderr, senão stdout
+                });
+            }
+
+            try {
+                if (result) {
+                    console.log(`[TESTE INFERENCIA] Resultado: ${result.inside ? 'DENTRO' : 'FORA'} (Conf: ${result.confidence})`);
+                    res.json(result);
+                } else {
+                    console.error(`[TESTE INFERENCIA] Saída inválida do Python: ${outputBuffer}`);
+                    res.status(500).json({ error: 'Saída inválida do modelo', raw_output: outputBuffer });
+                }
+            } catch (e) {
+                console.error(`[TESTE INFERENCIA] Erro ao processar resposta: ${e.message}`);
+                res.status(500).json({ error: 'Erro ao processar resposta do modelo' });
+            }
+        });
+
+    } catch (error) {
+        console.error('Erro no teste de inferência:', error);
+        res.status(500).json({
+            error: 'Erro interno do servidor',
+            message: error.message
+        });
+    }
+});
+
 // Rota para obter estatísticas de coleta por sala
 app.get('/api/stats/:room_label', async (req, res) => {
     try {

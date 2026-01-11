@@ -56,7 +56,7 @@ public class DataCollectionActivity extends AppCompatActivity {
 
     // Constantes
     private static final int PERMISSION_REQUEST_CODE = 1001;
-    private static final int DEFAULT_SCAN_INTERVAL_MS = 3000; // 3 segundos
+    private static final int DEFAULT_SCAN_INTERVAL_MS = 30000; // 30 segundos (Evitar throttling)
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
     // UI Components
@@ -66,6 +66,8 @@ public class DataCollectionActivity extends AppCompatActivity {
     private Button buttonStartCollection;
     private Button buttonStopCollection;
     private Button buttonTrainModel;
+    private Button buttonShowResults;
+    private Button buttonTestInference;
     private TextView textViewStatus;
     private TextView textViewScanCount;
     private TextView textViewLogs;
@@ -76,6 +78,7 @@ public class DataCollectionActivity extends AppCompatActivity {
     private Handler scanHandler;
     private Runnable scanRunnable;
     private boolean isCollecting = false;
+    private boolean isTestingInference = false; // Flag para diferenciar scan de coleta e teste
     private int scanCount = 0;
     private int currentScanInterval = DEFAULT_SCAN_INTERVAL_MS;
 
@@ -120,6 +123,26 @@ public class DataCollectionActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Registrar receiver sempre que a tela estiver ativa
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        registerReceiver(wifiScanReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Desregistrar para economizar bateria quando sair da tela
+        try {
+            unregisterReceiver(wifiScanReceiver);
+        } catch (IllegalArgumentException e) {
+            // Já desregistrado
+        }
+    }
+
     /**
      * Inicializa todos os componentes da Activity
      */
@@ -131,6 +154,8 @@ public class DataCollectionActivity extends AppCompatActivity {
         buttonStartCollection = findViewById(R.id.buttonStartCollection);
         buttonStopCollection = findViewById(R.id.buttonStopCollection);
         buttonTrainModel = findViewById(R.id.buttonTrainModel);
+        buttonShowResults = findViewById(R.id.buttonShowResults);
+        buttonTestInference = findViewById(R.id.buttonTestInference);
         textViewStatus = findViewById(R.id.textViewStatus);
         textViewScanCount = findViewById(R.id.textViewScanCount);
         textViewLogs = findViewById(R.id.textViewLogs);
@@ -155,7 +180,8 @@ public class DataCollectionActivity extends AppCompatActivity {
         scanHandler = new Handler();
 
         // Valores padrão
-        editTextScanInterval.setText("3");
+        editTextScanInterval.setText("30"); // 30 segundos
+        editTextServerUrl.setText("http://192.168.100.56:3000"); // URL Padrão HTTP
     }
 
     /**
@@ -165,6 +191,8 @@ public class DataCollectionActivity extends AppCompatActivity {
         buttonStartCollection.setOnClickListener(v -> startDataCollection());
         buttonStopCollection.setOnClickListener(v -> stopDataCollection());
         buttonTrainModel.setOnClickListener(v -> checkAndTrainModel());
+        buttonShowResults.setOnClickListener(v -> showCurrentModelResults());
+        buttonTestInference.setOnClickListener(v -> testInference());
     }
 
     /**
@@ -349,10 +377,7 @@ public class DataCollectionActivity extends AppCompatActivity {
         addLog("Servidor: " + serverUrl);
         addLog("========================================");
 
-        // Registrar receiver para os resultados do scan
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
-        registerReceiver(wifiScanReceiver, intentFilter);
+        // Receiver agora é gerenciado no onResume/onPause
 
         // Criar runnable para scans periódicos
         scanRunnable = new Runnable() {
@@ -380,12 +405,7 @@ public class DataCollectionActivity extends AppCompatActivity {
             scanHandler.removeCallbacks(scanRunnable);
         }
 
-        // Desregistrar receiver
-        try {
-            unregisterReceiver(wifiScanReceiver);
-        } catch (IllegalArgumentException e) {
-            // Receiver já foi desregistrado
-        }
+        // Receiver é gerenciado no onPause
 
         // Atualizar UI
         buttonStartCollection.setEnabled(true);
@@ -439,6 +459,11 @@ public class DataCollectionActivity extends AppCompatActivity {
             addLog("ERRO: WifiManager não disponível");
             return;
         }
+
+        // Ignorar se não estiver coletando nem testando
+        if (!isCollecting && !isTestingInference) {
+            return;
+        }
         
         try {
             // Verificar permissões antes de obter resultados
@@ -466,6 +491,13 @@ public class DataCollectionActivity extends AppCompatActivity {
                 addLog("  • " + ssid + " | " + result.BSSID + " | " + result.level + " dBm");
             }
 
+            // Se for teste de inferência, enviar para rota específica e parar
+            if (isTestingInference) {
+                sendInferenceTest(scanResults);
+                isTestingInference = false; // Resetar flag
+                return;
+            }
+
             // Construir JSON e enviar para o servidor
             sendDataToServer(scanResults);
         } catch (SecurityException e) {
@@ -491,6 +523,17 @@ public class DataCollectionActivity extends AppCompatActivity {
             // Obter dados da UI
             String roomLabel = editTextRoomLabel.getText().toString().trim();
             String serverUrl = editTextServerUrl.getText().toString().trim();
+            
+            // Forçar HTTP se for IP local e usuário digitou HTTPS
+            if (serverUrl.startsWith("https://") && (serverUrl.contains("192.168.") || serverUrl.contains("10.0."))) {
+                serverUrl = serverUrl.replace("https://", "http://");
+                addLog("AVISO: Alterado para HTTP (Dev local)");
+            }
+            // Garantir protocolo se não tiver
+            if (!serverUrl.startsWith("http")) {
+                serverUrl = "http://" + serverUrl;
+            }
+
             String deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
 
             // Construir JSON do fingerprint Wi-Fi
@@ -767,6 +810,147 @@ public class DataCollectionActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    /**
+     * Mostra os resultados do modelo atual, se existir
+     */
+    private void showCurrentModelResults() {
+        String roomLabel = editTextRoomLabel.getText().toString().trim();
+        String serverUrl = editTextServerUrl.getText().toString().trim();
+
+        if (roomLabel.isEmpty()) {
+            Toast.makeText(this, "Por favor, insira o nome da sala", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (serverUrl.isEmpty()) {
+            Toast.makeText(this, "Por favor, insira a URL do servidor", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Abre a Activity de resultados
+        Intent intent = new Intent(this, TrainingResultsActivity.class);
+        intent.putExtra("room_label", roomLabel);
+        intent.putExtra("server_url", serverUrl);
+        // Não passamos training_info completo pois teríamos que buscar do servidor primeiro
+        // A Activity TrainingResultsActivity deve lidar com isso
+        startActivity(intent);
+    }
+
+    /**
+     * Inicia um scan único para testar inferência
+     */
+    private void testInference() {
+        String roomLabel = editTextRoomLabel.getText().toString().trim();
+        
+        if (roomLabel.isEmpty()) {
+            Toast.makeText(this, "Por favor, insira o nome da sala", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (isCollecting) {
+             Toast.makeText(this, "Pare a coleta antes de testar inferência", Toast.LENGTH_SHORT).show();
+             return;
+        }
+
+        // Verificar permissões
+        if (!checkPermissions()) {
+            requestPermissions();
+            return;
+        }
+        
+        isTestingInference = true;
+        addLog("========================================");
+        addLog("🧪 Iniciando Teste de Inferência...");
+        addLog("Sala Alvo: " + roomLabel);
+        
+        performWifiScan();
+    }
+
+    /**
+     * Envia o scan para o endpoint de teste de inferência
+     */
+    private void sendInferenceTest(List<ScanResult> scanResults) {
+        try {
+            String roomLabel = editTextRoomLabel.getText().toString().trim();
+            String serverUrl = editTextServerUrl.getText().toString().trim();
+            
+            // Garantir protocolo (copiado do sendDataToServer)
+            if (serverUrl.startsWith("https://") && (serverUrl.contains("192.168.") || serverUrl.contains("10.0."))) {
+                serverUrl = serverUrl.replace("https://", "http://");
+            }
+            if (!serverUrl.startsWith("http")) {
+                serverUrl = "http://" + serverUrl;
+            }
+
+            // Construir JSON do fingerprint Wi-Fi
+            JSONArray wifiFingerprint = new JSONArray();
+            for (ScanResult result : scanResults) {
+                JSONObject network = new JSONObject();
+                network.put("bssid", result.BSSID);
+                network.put("ssid", result.SSID);
+                network.put("rssi", result.level);
+                wifiFingerprint.put(network);
+            }
+
+            JSONObject payload = new JSONObject();
+            payload.put("room_label", roomLabel);
+            payload.put("wifi_scan_results", wifiFingerprint);
+
+            addLog("Enviando scan para teste de inferência...");
+
+            RequestBody body = RequestBody.create(payload.toString(), JSON);
+            Request request = new Request.Builder()
+                .url(serverUrl + "/api/predict-test")
+                .post(body)
+                .build();
+
+            httpClient.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                    runOnUiThread(() -> addLog("ERRO no teste: " + e.getMessage()));
+                }
+
+                @Override
+                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                    final String responseBody = response.body() != null ? response.body().string() : "";
+                    
+                    runOnUiThread(() -> {
+                        try {
+                            if (response.isSuccessful()) {
+                                JSONObject json = new JSONObject(responseBody);
+                                // O backend retorna "inside": true/false
+                                boolean isInside = json.getBoolean("inside");
+                                double error = json.optDouble("reconstruction_error", -1);
+                                double threshold = json.optDouble("threshold", -1);
+                                double confidence = json.optDouble("confidence", 0);
+                                
+                                addLog("----------------------------------------");
+                                if (isInside) {
+                                    addLog("✅ RESULTADO: DENTRO DA SALA");
+                                } else {
+                                    addLog("❌ RESULTADO: FORA DA SALA");
+                                }
+                                addLog(String.format(Locale.US, "Confiança: %.2f%%", confidence * 100));
+                                addLog(String.format(Locale.US, "Erro: %.4f | Limite: %.4f", error, threshold));
+                                addLog("----------------------------------------");
+                                
+                            } else {
+                                addLog("ERRO Servidor: " + response.code());
+                                addLog(responseBody);
+                            }
+                        } catch (JSONException e) {
+                            addLog("ERRO ao ler resposta: " + e.getMessage());
+                            addLog("Raw: " + responseBody);
+                        }
+                    });
+                }
+            });
+
+        } catch (JSONException e) {
+            addLog("ERRO JSON: " + e.getMessage());
+        }
     }
 
     @Override

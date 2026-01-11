@@ -16,6 +16,7 @@ import com.geoping.app.utils.ApiClient;
 import com.geoping.app.utils.AuthManager;
 import com.geoping.datacollection.R;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -68,6 +69,12 @@ public class RoomManagementActivity extends AppCompatActivity {
         setupListeners();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshRoomData();
+    }
+
     private void initializeViews() {
         textViewRoomName = findViewById(R.id.textViewRoomName);
         textViewWifiSsid = findViewById(R.id.textViewWifiSsid);
@@ -92,8 +99,54 @@ public class RoomManagementActivity extends AppCompatActivity {
             textViewModelStatus.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
         }
 
-        // TODO: Obter contagem de inscritos do backend
-        textViewSubscriberCount.setText("0");
+        textViewSubscriberCount.setText(String.valueOf(room.getSubscriberCount()));
+    }
+
+    private void refreshRoomData() {
+        String url = apiClient.buildUrl("/api/rooms/my-rooms");
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("Authorization", authManager.getAuthorizationHeader())
+                .build();
+
+        apiClient.getHttpClient().newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e(TAG, "Erro ao atualizar dados da sala: " + e.getMessage());
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                try (ResponseBody responseBody = response.body()) {
+                    if (!response.isSuccessful() || responseBody == null) return;
+
+                    String responseData = responseBody.string();
+                    runOnUiThread(() -> {
+                        try {
+                            JSONObject json = new JSONObject(responseData);
+                            JSONArray roomsJson = json.getJSONArray("rooms");
+
+                            for (int i = 0; i < roomsJson.length(); i++) {
+                                JSONObject r = roomsJson.getJSONObject(i);
+                                if (r.getString("room_id").equals(room.getRoomId())) {
+                                    // Atualizar objeto local
+                                    room.setSubscriberCount(r.optInt("subscriber_count", 0));
+                                    room.setPendingCount(r.optInt("pending_count", 0));
+                                    room.setModelTrained(r.optBoolean("model_trained", false));
+                                    
+                                    // Atualizar UI
+                                    displayRoomInfo();
+                                    break;
+                                }
+                            }
+                        } catch (JSONException e) {
+                            Log.e(TAG, "Erro ao processar dados atualizados: " + e.getMessage());
+                        }
+                    });
+                }
+            }
+        });
     }
 
     private void setupListeners() {

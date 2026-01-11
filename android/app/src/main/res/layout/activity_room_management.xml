@@ -167,15 +167,15 @@
             android:padding="14dp"
             android:backgroundTint="#2196F3" />
 
-        <!-- Zona de Perigo -->
-        <TextView
+        <!-- Zona de Perigo (Removido Texto) -->
+        <!-- <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
             android:text="Zona de Perigo"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="#D32F2F" />
+            android:textColor="#D32F2F" /> -->
 
         <Button
             android:id="@+id/buttonDeleteRoom"

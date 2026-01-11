@@ -176,6 +176,28 @@
                     android:textColor="#FFFFFF"
                     android:enabled="false"/>
 
+                <Button
+                    android:id="@+id/buttonShowResults"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:text="RESULTADO MODELO ATUAL"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:background="#9B59B6"
+                    android:textColor="#FFFFFF"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="10dp"/>
+
+                <Button
+                    android:id="@+id/buttonTestInference"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:text="FAZER INFERÊNCIA"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:background="#E67E22"
+                    android:textColor="#FFFFFF"/>
+
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
