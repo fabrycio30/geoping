@@ -22,7 +22,7 @@ router.post('/conversations/create', authenticateToken, async (req, res) => {
 
         // Buscar sala
         const roomResult = await pool.query(
-            'SELECT id FROM rooms WHERE room_id = $1',
+            'SELECT id, creator_id FROM rooms WHERE room_id = $1',
             [room_id]
         );
 
@@ -33,22 +33,25 @@ router.post('/conversations/create', authenticateToken, async (req, res) => {
             });
         }
 
-        const roomIdInternal = roomResult.rows[0].id;
+        const room = roomResult.rows[0];
+        const roomIdInternal = room.id;
 
-        // [MODO TESTE] Verificação de presença desativada
-        // const presenceResult = await pool.query(`
-        //     SELECT is_present
-        //     FROM presence
-        //     WHERE user_id = $1 AND room_id = $2
-        //       AND last_seen_at > NOW() - INTERVAL '30 seconds'
-        // `, [creator_id, roomIdInternal]);
+        // Verificar se usuário está dentro da sala (Ignorar se for o criador)
+        if (room.creator_id !== creator_id) {
+            const presenceResult = await pool.query(`
+                SELECT is_present
+                FROM presence
+                WHERE user_id = $1 AND room_id = $2
+                  AND last_seen_at > NOW() - INTERVAL '60 seconds'
+            `, [creator_id, roomIdInternal]);
 
-        // if (presenceResult.rows.length === 0 || !presenceResult.rows[0].is_present) {
-        //     return res.status(403).json({
-        //         success: false,
-        //         error: 'Você precisa estar dentro da sala para criar uma conversa'
-        //     });
-        // }
+            if (presenceResult.rows.length === 0 || !presenceResult.rows[0].is_present) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Você precisa estar dentro da sala para criar uma conversa'
+                });
+            }
+        }
 
         // Criar conversa
         const result = await pool.query(`
@@ -116,7 +119,7 @@ router.post('/messages/send', authenticateToken, async (req, res) => {
 
         // Buscar conversa e sala
         const convResult = await pool.query(`
-            SELECT c.id, c.room_id, r.room_id as room_uuid
+            SELECT c.id, c.room_id, r.room_id as room_uuid, r.creator_id
             FROM conversations c
             JOIN rooms r ON c.room_id = r.id
             WHERE c.conversation_id = $1
@@ -131,20 +134,22 @@ router.post('/messages/send', authenticateToken, async (req, res) => {
 
         const conversation = convResult.rows[0];
 
-        // [MODO TESTE] Verificação de presença desativada
-        // const presenceResult = await pool.query(`
-        //     SELECT is_present
-        //     FROM presence
-        //     WHERE user_id = $1 AND room_id = $2
-        //       AND last_seen_at > NOW() - INTERVAL '30 seconds'
-        // `, [sender_id, conversation.room_id]);
+        // Verificar se usuário está dentro da sala (Ignorar se for o criador)
+        if (conversation.creator_id !== sender_id) {
+            const presenceResult = await pool.query(`
+                SELECT is_present
+                FROM presence
+                WHERE user_id = $1 AND room_id = $2
+                  AND last_seen_at > NOW() - INTERVAL '60 seconds'
+            `, [sender_id, conversation.room_id]);
 
-        // if (presenceResult.rows.length === 0 || !presenceResult.rows[0].is_present) {
-        //     return res.status(403).json({
-        //         success: false,
-        //         error: 'Você precisa estar dentro da sala para enviar mensagens'
-        //     });
-        // }
+            if (presenceResult.rows.length === 0 || !presenceResult.rows[0].is_present) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Você precisa estar dentro da sala para enviar mensagens'
+                });
+            }
+        }
 
         // Inserir mensagem
         const result = await pool.query(`

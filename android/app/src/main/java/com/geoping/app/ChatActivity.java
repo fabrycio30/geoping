@@ -267,11 +267,11 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
     }
 
     private void showNewConversationDialog() {
-        // [MODO TESTE] Permitir criar conversa mesmo estando fora
-        // if (!isPresent) {
-        //     Toast.makeText(this, "Você precisa estar presente na sala para criar conversas.", Toast.LENGTH_LONG).show();
-        //     return;
-        // }
+        boolean isCreator = authManager.getUserId() == currentRoom.getCreatorId();
+        if (!isPresent && !isCreator) {
+            Toast.makeText(this, "Você precisa estar presente na sala para criar conversas.", Toast.LENGTH_LONG).show();
+            return;
+        }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Nova Conversa");
@@ -449,16 +449,21 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
 
     private void updatePresenceUI(boolean present, double confidence) {
         isPresent = present;
-        if (present) {
+        boolean isCreator = authManager.getUserId() == currentRoom.getCreatorId();
+        
+        if (isCreator) {
+            textViewPresenceStatus.setText("★ Criador da Sala (Acesso Total)");
+            textViewPresenceStatus.setTextColor(0xFFF39C12); // Laranja/Dourado
+            fabNewConversation.setEnabled(true);
+        } else if (present) {
             textViewPresenceStatus.setText(String.format("✓ Você está dentro (%.0f%%)", confidence * 100));
             textViewPresenceStatus.setTextColor(0xFF27AE60); // Verde
-            // fabNewConversation.setEnabled(true);
+            fabNewConversation.setEnabled(true);
         } else {
-            textViewPresenceStatus.setText("✗ Você está fora da sala (Modo Teste: Chat Liberado)");
+            textViewPresenceStatus.setText("✗ Você está fora da sala");
             textViewPresenceStatus.setTextColor(0xFFE74C3C); // Vermelho
-            // fabNewConversation.setEnabled(false); // [MODO TESTE] Não desabilitar botão
+            fabNewConversation.setEnabled(false);
         }
-        fabNewConversation.setEnabled(true); // Sempre habilitado no modo teste
     }
 
     private void updateEmptyState() {

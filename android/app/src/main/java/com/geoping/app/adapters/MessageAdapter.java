@@ -57,7 +57,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
             }
         }
         messages.add(message);
-        notifyItemInserted(messages.size() - 1);
+        notifyItemInserted(messages.size() - 1); // Notifica inserção específica
     }
 
     static class MessageViewHolder extends RecyclerView.ViewHolder {

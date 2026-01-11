@@ -240,20 +240,23 @@ public class ConversationActivity extends AppCompatActivity {
                             Log.d(TAG, "Mensagem enviada com sucesso!");
                             
                             try {
+                                Log.d(TAG, "Response body envio: " + responseBody); // DEBUG
                                 JSONObject jsonResponse = new JSONObject(responseBody);
                                 JSONObject messageJson = jsonResponse.getJSONObject("message");
                                 
                                 Message newMessage = new Message();
-                                newMessage.setId(messageJson.getInt("id"));
-                                newMessage.setConversationId(messageJson.getInt("conversation_id"));
-                                newMessage.setSenderId(messageJson.getInt("sender_id"));
-                                newMessage.setSenderUsername(messageJson.getString("sender_username"));
+                                newMessage.setId(messageJson.optInt("id")); // Usar optInt para evitar erro se vier string
+                                newMessage.setConversationId(messageJson.optInt("conversation_id"));
+                                newMessage.setSenderId(messageJson.optInt("sender_id"));
+                                newMessage.setSenderUsername(messageJson.optString("sender_username", "Eu")); // Fallback
                                 newMessage.setContent(messageJson.getString("content"));
                                 newMessage.setSentAt(messageJson.getString("sent_at"));
-                                newMessage.setMine(true); // Se enviei com sucesso, é minha
+                                newMessage.setMine(true);
 
+                                Log.d(TAG, "Adicionando msg ao adapter: " + newMessage.getContent());
                                 messageAdapter.addMessage(newMessage);
-                                recyclerViewMessages.smoothScrollToPosition(messageAdapter.getItemCount() - 1);
+                                messageAdapter.notifyDataSetChanged(); // Forçar atualização completa
+                                recyclerViewMessages.scrollToPosition(messageAdapter.getItemCount() - 1);
                                 updateEmptyState();
                                 
                             } catch (JSONException e) {
