@@ -236,8 +236,30 @@ public class ConversationActivity extends AppCompatActivity {
                     final String responseBody = response.body() != null ? response.body().string() : "";
                     runOnUiThread(() -> {
                         if (response.isSuccessful()) {
-                            // A mensagem aparecerá via Socket.io
+                            // A mensagem aparecerá via Socket.io, MAS vamos adicionar localmente também para UX instantânea
                             Log.d(TAG, "Mensagem enviada com sucesso!");
+                            
+                            try {
+                                JSONObject jsonResponse = new JSONObject(responseBody);
+                                JSONObject messageJson = jsonResponse.getJSONObject("message");
+                                
+                                Message newMessage = new Message();
+                                newMessage.setId(messageJson.getInt("id"));
+                                newMessage.setConversationId(messageJson.getInt("conversation_id"));
+                                newMessage.setSenderId(messageJson.getInt("sender_id"));
+                                newMessage.setSenderUsername(messageJson.getString("sender_username"));
+                                newMessage.setContent(messageJson.getString("content"));
+                                newMessage.setSentAt(messageJson.getString("sent_at"));
+                                newMessage.setMine(true); // Se enviei com sucesso, é minha
+
+                                messageAdapter.addMessage(newMessage);
+                                recyclerViewMessages.smoothScrollToPosition(messageAdapter.getItemCount() - 1);
+                                updateEmptyState();
+                                
+                            } catch (JSONException e) {
+                                Log.e(TAG, "Erro ao processar resposta de envio: " + e.getMessage());
+                            }
+                            
                         } else {
                             String errorMsg = "Erro ao enviar mensagem.";
                             try {

@@ -480,6 +480,12 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        loadConversations(); // Recarregar lista ao voltar para esta tela
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         if (presenceCheckHandler != null && presenceCheckRunnable != null) {

@@ -50,6 +50,12 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
     }
 
     public void addMessage(Message message) {
+        // Evitar duplicação
+        for (Message m : messages) {
+            if (m.getId() == message.getId()) {
+                return;
+            }
+        }
         messages.add(message);
         notifyItemInserted(messages.size() - 1);
     }
