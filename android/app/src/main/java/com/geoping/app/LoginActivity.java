@@ -34,6 +34,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText editTextUsername;
     private EditText editTextPassword;
+    private EditText editTextServerUrl; // Novo campo
     private Button buttonLogin;
     private TextView textViewRegister;
     private TextView textViewDevMode;
@@ -48,7 +49,12 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         authManager = new AuthManager(this);
-        apiClient = new ApiClient(this);
+        apiClient = new ApiClient(this); // Carrega URL salva automaticamente
+
+        initializeComponents();
+        
+        // Preencher URL salva
+        editTextServerUrl.setText(apiClient.getServerUrl());
 
         // Se ja esta autenticado, ir direto para tela principal
         if (authManager.isAuthenticated()) {
@@ -56,13 +62,13 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        initializeComponents();
         setupListeners();
     }
 
     private void initializeComponents() {
         editTextUsername = findViewById(R.id.editTextUsername);
         editTextPassword = findViewById(R.id.editTextPassword);
+        editTextServerUrl = findViewById(R.id.editTextServerUrl); // Init
         buttonLogin = findViewById(R.id.buttonLogin);
         textViewRegister = findViewById(R.id.textViewRegister);
         textViewDevMode = findViewById(R.id.textViewDevMode);
@@ -94,11 +100,16 @@ public class LoginActivity extends AppCompatActivity {
     private void attemptLogin() {
         String username = editTextUsername.getText().toString().trim();
         String password = editTextPassword.getText().toString().trim();
+        String serverUrl = editTextServerUrl.getText().toString().trim();
 
-        if (username.isEmpty() || password.isEmpty()) {
+        if (username.isEmpty() || password.isEmpty() || serverUrl.isEmpty()) {
             Toast.makeText(this, "Preencha todos os campos", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        // Atualizar e Salvar URL do servidor
+        apiClient.setServerUrl(serverUrl);
+        ApiClient.setBaseUrl(serverUrl); // Atualiza estático também para garantir
 
         setLoading(true);
 

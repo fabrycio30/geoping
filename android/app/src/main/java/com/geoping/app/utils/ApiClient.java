@@ -24,6 +24,8 @@ public class ApiClient {
     public ApiClient(Context context) {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         httpClient = new OkHttpClient();
+        // Sincronizar estático com preferência salva ao iniciar
+        baseUrl = getServerUrl(); 
     }
 
     /**
@@ -49,6 +51,7 @@ public class ApiClient {
             url = url.substring(0, url.length() - 1);
         }
         prefs.edit().putString(KEY_SERVER_URL, url).apply();
+        baseUrl = url; // Sincronizar estático
     }
 
     /**

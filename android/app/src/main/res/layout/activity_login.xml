@@ -30,7 +30,23 @@
             android:text="Sistema de Chat Indoor"
             android:textSize="16sp"
             android:textColor="#7F8C8D"
-            android:layout_marginBottom="60dp"/>
+            android:layout_marginBottom="40dp"/>
+
+        <!-- Campo URL Servidor -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="URL do Servidor (ex: http://192.168.1.5:3000)"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editTextServerUrl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textUri"
+                android:maxLines="1"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Campo Username -->
         <com.google.android.material.textfield.TextInputLayout

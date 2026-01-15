@@ -200,12 +200,9 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
 
     private void connectSocket() {
         try {
-            String serverUrl = ApiClient.getBaseUrl();
-            // Tentar pegar do SharedPreferences se o estático estiver padrão
-            if (serverUrl.equals("http://192.168.100.56:3000")) {
-                 serverUrl = apiClient.getServerUrl();
-            }
-
+            // Usar sempre a URL configurada no ApiClient (via LoginActivity)
+            String serverUrl = apiClient.getServerUrl();
+            
             String authToken = authManager.getToken();
             
             if (authToken == null || authToken.isEmpty()) {
