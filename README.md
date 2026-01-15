@@ -1,5 +1,7 @@
 # GeoPing - Sistema de Chat Indoor com Validação de Presença Geográfica
 
+<img style="width: auto; height:auto;" src="https://raw.githubusercontent.com/fabrycio30/geoping/c7f2426577562645b36caa4ad4ffb408589a8c9d/image/a/capa.png" alt=""/>
+
 ## Visão Geral
 
 O **GeoPing** é uma plataforma móvel de comunicação em 'tempo real' (Chat) que utiliza Aprendiado do Máquina para garantir a segurança e a privacidade das conversas. Diferente de chats baseados em GPS (que não funcionam bem em ambientes fechados), o GeoPing utiliza **One-Class Classification (Autoencoder)** baseada em assinaturas de Wi-Fi (Fingerprinting) para determinar se um usuário está fisicamente dentro de uma sala.
@@ -120,7 +122,7 @@ pip install -r requirements.txt
 
 ---
 
-## Fluxo de Utilização 
+## Fluxo de Utilização
 
 1. **Criar Sala:**
 
