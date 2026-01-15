@@ -3,6 +3,8 @@ const { spawn } = require('child_process');
 const path = require('path');
 const router = express.Router();
 
+const { authenticateToken } = require('../middleware/auth');
+
 /**
  * POST /api/presence/update
  * Atualizar status de presença do usuário
@@ -13,11 +15,16 @@ const router = express.Router();
  *   "wifi_scan_results": [{"bssid": "xx:xx:xx:xx:xx:xx", "ssid": "Name", "rssi": -50}]
  * }
  */
-router.post('/update', async (req, res) => {
+router.post('/update', authenticateToken, async (req, res) => {
+    // Debug
+    // console.log('[PRESENCE] Auth header:', req.headers.authorization);
+    // console.log('[PRESENCE] Req User:', req.user);
+
     const { room_id, wifi_scan_results } = req.body;
-    const user_id = req.user?.userId; // Correção: pegar do objeto req.user e usar optional chaining
+    const user_id = req.user?.userId;
 
     if (!user_id) {
+         console.error('[PRESENCE] Erro 401: user_id indefinido no req.user', req.user);
          return res.status(401).json({
             success: false,
             error: 'Usuário não autenticado no contexto'

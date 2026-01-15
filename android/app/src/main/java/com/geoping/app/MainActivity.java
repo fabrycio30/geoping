@@ -283,6 +283,7 @@ public class MainActivity extends AppCompatActivity implements RoomAdapter.OnRoo
             room.setSubscriptionStatus(json.getString("subscription_status"));
             room.setBlocked(json.optBoolean("is_blocked", false));
             room.setCreatorUsername(json.optString("creator_username"));
+            room.setSubscriberCount(json.optInt("subscriber_count", 0));
             rooms.add(room);
         }
         return rooms;

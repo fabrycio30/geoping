@@ -40,6 +40,11 @@ public class RoomManagementActivity extends AppCompatActivity {
     private TextView textViewAccessCode;
     private TextView textViewModelStatus;
     private TextView textViewSubscriberCount;
+    private TextView textViewModelDate;
+    private TextView textViewModelThreshold;
+    private androidx.cardview.widget.CardView cardModelDetails;
+    private androidx.recyclerview.widget.RecyclerView recyclerViewSubscribers;
+    
     private Button buttonViewPendingSubscriptions;
     private Button buttonRetrainModel;
     private Button buttonDeleteRoom;
@@ -47,6 +52,7 @@ public class RoomManagementActivity extends AppCompatActivity {
     private Room room;
     private ApiClient apiClient;
     private AuthManager authManager;
+    private com.geoping.app.adapters.SubscriberAdapter subscriberAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,7 +78,7 @@ public class RoomManagementActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        refreshRoomData();
+        refreshDetailedRoomData();
     }
 
     private void initializeViews() {
@@ -81,10 +87,21 @@ public class RoomManagementActivity extends AppCompatActivity {
         textViewAccessCode = findViewById(R.id.textViewAccessCode);
         textViewModelStatus = findViewById(R.id.textViewModelStatus);
         textViewSubscriberCount = findViewById(R.id.textViewSubscriberCount);
+        
+        textViewModelDate = findViewById(R.id.textViewModelDate);
+        textViewModelThreshold = findViewById(R.id.textViewModelThreshold);
+        cardModelDetails = findViewById(R.id.cardModelDetails);
+        recyclerViewSubscribers = findViewById(R.id.recyclerViewSubscribers);
+        
+        recyclerViewSubscribers.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
+        subscriberAdapter = new com.geoping.app.adapters.SubscriberAdapter(new java.util.ArrayList<>());
+        recyclerViewSubscribers.setAdapter(subscriberAdapter);
+
         buttonViewPendingSubscriptions = findViewById(R.id.buttonViewPendingSubscriptions);
         buttonRetrainModel = findViewById(R.id.buttonRetrainModel);
         buttonDeleteRoom = findViewById(R.id.buttonDeleteRoom);
     }
+
 
     private void displayRoomInfo() {
         textViewRoomName.setText(room.getRoomName());
@@ -102,8 +119,8 @@ public class RoomManagementActivity extends AppCompatActivity {
         textViewSubscriberCount.setText(String.valueOf(room.getSubscriberCount()));
     }
 
-    private void refreshRoomData() {
-        String url = apiClient.buildUrl("/api/rooms/my-rooms");
+    private void refreshDetailedRoomData() {
+        String url = apiClient.buildUrl("/api/rooms/" + room.getRoomId() + "/details");
         Request request = new Request.Builder()
                 .url(url)
                 .get()
@@ -113,7 +130,7 @@ public class RoomManagementActivity extends AppCompatActivity {
         apiClient.getHttpClient().newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.e(TAG, "Erro ao atualizar dados da sala: " + e.getMessage());
+                Log.e(TAG, "Erro ao atualizar dados detalhados: " + e.getMessage());
             }
 
             @Override
@@ -125,29 +142,51 @@ public class RoomManagementActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         try {
                             JSONObject json = new JSONObject(responseData);
-                            JSONArray roomsJson = json.getJSONArray("rooms");
+                            JSONObject roomJson = json.getJSONObject("room");
+                            JSONArray subscribersJson = json.getJSONArray("subscribers");
+                            JSONObject modelInfo = json.optJSONObject("model_info");
 
-                            for (int i = 0; i < roomsJson.length(); i++) {
-                                JSONObject r = roomsJson.getJSONObject(i);
-                                if (r.getString("room_id").equals(room.getRoomId())) {
-                                    // Atualizar objeto local
-                                    room.setSubscriberCount(r.optInt("subscriber_count", 0));
-                                    room.setPendingCount(r.optInt("pending_count", 0));
-                                    room.setModelTrained(r.optBoolean("model_trained", false));
-                                    
-                                    // Atualizar UI
-                                    displayRoomInfo();
-                                    break;
-                                }
+                            // Atualizar dados básicos
+                            room.setSubscriberCount(roomJson.optInt("subscribers_count", 0));
+                            room.setModelTrained(roomJson.optBoolean("model_trained", false));
+                            displayRoomInfo();
+
+                            // Atualizar lista de inscritos
+                            java.util.List<JSONObject> subscribersList = new java.util.ArrayList<>();
+                            for (int i = 0; i < subscribersJson.length(); i++) {
+                                subscribersList.add(subscribersJson.getJSONObject(i));
                             }
+                            subscriberAdapter.updateData(subscribersList);
+
+                            // Atualizar detalhes do modelo
+                            if (modelInfo != null) {
+                                cardModelDetails.setVisibility(android.view.View.VISIBLE);
+                                String date = modelInfo.optString("training_date", "-");
+                                double threshold = modelInfo.optDouble("threshold", 0.0);
+                                
+                                // Formatar data se possível
+                                try {
+                                    // Assumindo ISO 8601, simples substring para data
+                                    if (date.length() > 10) date = date.substring(0, 10) + " " + date.substring(11, 16);
+                                } catch (Exception e) {}
+
+                                textViewModelDate.setText("Data Treinamento: " + date);
+                                textViewModelThreshold.setText(String.format("Limiar de Decisão: %.6f", threshold));
+                            } else {
+                                cardModelDetails.setVisibility(android.view.View.GONE);
+                            }
+
                         } catch (JSONException e) {
-                            Log.e(TAG, "Erro ao processar dados atualizados: " + e.getMessage());
+                            Log.e(TAG, "Erro ao processar dados detalhados: " + e.getMessage());
                         }
                     });
                 }
             }
         });
     }
+
+    // refreshRoomData original pode ser removido ou mantido como fallback, mas o details substitui
+
 
     private void setupListeners() {
         buttonViewPendingSubscriptions.setOnClickListener(v -> {

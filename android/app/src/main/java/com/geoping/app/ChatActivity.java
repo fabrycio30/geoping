@@ -73,6 +73,10 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
     // Listeners Socket.io
     private Emitter.Listener onNewConversationListener;
 
+    // Variáveis para Wi-Fi scan
+    private android.net.wifi.WifiManager wifiManager;
+    private android.content.BroadcastReceiver wifiScanReceiver;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,6 +87,8 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
 
             authManager = new AuthManager(this);
             apiClient = new ApiClient(this);
+            wifiManager = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(android.content.Context.WIFI_SERVICE);
+            
             Log.d(TAG, "AuthManager e ApiClient inicializados");
 
             currentRoom = (Room) getIntent().getSerializableExtra("room");
@@ -116,8 +122,7 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
             
             checkPermissions(); // Verificar permissões antes de iniciar serviço
             
-            startPresenceCheck();
-            Log.d(TAG, "Verificação de presença iniciada");
+            // Ciclo iniciado no onResume
             
         } catch (Exception e) {
             Log.e(TAG, "ERRO CRÍTICO no onCreate: " + e.getMessage(), e);
@@ -137,6 +142,22 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
 
         textViewRoomName.setText(currentRoom.getRoomName());
         presenceCheckHandler = new Handler();
+
+        int myId = authManager.getUserId();
+        int creatorId = currentRoom.getCreatorId();
+        Log.d(TAG, "DEBUG: User ID=" + myId + ", Creator ID=" + creatorId);
+
+        // Verificação imediata de privilégio de Criador
+        if (myId == creatorId) {
+            updatePresenceUI(true, 1.0); // Força status positivo para criador
+            Log.d(TAG, "DEBUG: Usuário é criador. Botão habilitado.");
+        } else {
+            // Se não for criador, inicia bloqueado até a primeira verificação
+            updatePresenceUI(false, 0.0);
+            textViewPresenceStatus.setText("Verificando presença...");
+            textViewPresenceStatus.setTextColor(0xFF7F8C8D); // Cinza
+            Log.d(TAG, "DEBUG: Usuário visitante. Aguardando scan.");
+        }
     }
 
     private void setupListeners() {
@@ -268,8 +289,10 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
 
     private void showNewConversationDialog() {
         boolean isCreator = authManager.getUserId() == currentRoom.getCreatorId();
+        
+        // Verificação redundante de segurança
         if (!isPresent && !isCreator) {
-            Toast.makeText(this, "Você precisa estar presente na sala para criar conversas.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Você precisa estar na sala para criar conversas.", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -380,19 +403,108 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
         }
     }
 
-    private void startPresenceCheck() {
-        presenceCheckRunnable = new Runnable() {
-            @Override
-            public void run() {
-                checkPresenceStatus();
-                presenceCheckHandler.postDelayed(this, 5000); // Verificar a cada 5 segundos
+    // startPresenceCheck e checkPresenceStatus antigos removidos, pois foram substituídos pelo ciclo startScanCycle/scheduleNextScan
+
+
+    private void handleWifiScanSuccess() {
+        if (!isActivityActive) return;
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "Permissão de localização não concedida para scan.");
+            scheduleNextScan();
+            return;
+        }
+
+        try {
+            List<android.net.wifi.ScanResult> results = wifiManager.getScanResults();
+            if (results == null || results.isEmpty()) {
+                 Log.w(TAG, "Scan Wi-Fi retornou lista vazia.");
+                 scheduleNextScan();
+                 return;
             }
-        };
-        presenceCheckHandler.post(presenceCheckRunnable);
+            
+            // Se não for criador, avisa que está enviando
+            if (authManager.getUserId() != currentRoom.getCreatorId()) {
+                 textViewPresenceStatus.setText("Analisando...");
+            }
+
+            // Montar payload para /api/presence/update
+            JSONArray wifiFingerprint = new JSONArray();
+            for (android.net.wifi.ScanResult result : results) {
+                JSONObject network = new JSONObject();
+                network.put("bssid", result.BSSID);
+                network.put("ssid", result.SSID);
+                network.put("rssi", result.level);
+                wifiFingerprint.put(network);
+            }
+
+            JSONObject payload = new JSONObject();
+            payload.put("room_id", currentRoom.getRoomId());
+            payload.put("wifi_scan_results", wifiFingerprint);
+
+            String url = apiClient.buildUrl("/api/presence/update");
+            RequestBody body = RequestBody.create(payload.toString(), JSON);
+            
+            String authHeader = authManager.getAuthorizationHeader();
+            // Log.d(TAG, "DEBUG: Auth Header: " + (authHeader != null && authHeader.length() > 10 ? authHeader.substring(0, 15) + "..." : authHeader));
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("Authorization", authHeader)
+                    .post(body)
+                    .build();
+
+            ApiClient.getSharedHttpClient().newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                    Log.e(TAG, "Erro de rede ao atualizar presença: " + e.getMessage());
+                    scheduleNextScan(); // Continua o ciclo mesmo com erro
+                }
+
+                @Override
+                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                    final String responseBody = response.body() != null ? response.body().string() : "";
+                    Log.d(TAG, "DEBUG: Server Response: Code=" + response.code() + ", Body=" + responseBody);
+                    
+                    runOnUiThread(() -> {
+                         try {
+                             if (response.isSuccessful()) {
+                                 JSONObject json = new JSONObject(responseBody);
+                                 boolean isInside = json.getBoolean("inside");
+                                 double confidence = json.optDouble("confidence", 0.0);
+                                 
+                                 Log.d(TAG, "DEBUG: Parsed Inside=" + isInside + ", Conf=" + confidence);
+                                 updatePresenceUI(isInside, confidence);
+                             } else {
+                                 Log.e(TAG, "DEBUG: Server error: " + response.code());
+                                 if (response.code() == 401) {
+                                     // Token expirou ou inválido
+                                     Toast.makeText(ChatActivity.this, "Sessão expirada. Faça login novamente.", Toast.LENGTH_LONG).show();
+                                     // Opcional: Redirecionar para LoginActivity
+                                 }
+                                 if (authManager.getUserId() != currentRoom.getCreatorId()) {
+                                     textViewPresenceStatus.setText("Erro no servidor: " + response.code());
+                                 }
+                             }
+                         } catch (JSONException e) {
+                             Log.e(TAG, "DEBUG: JSON Parse error: " + e.getMessage());
+                         } finally {
+                             // CRUCIAL: Agendar próximo scan APÓS a resposta
+                             scheduleNextScan();
+                         }
+                    });
+                }
+            });
+
+        } catch (JSONException e) {
+            Log.e(TAG, "Erro ao processar scan Wi-Fi: " + e.getMessage());
+            scheduleNextScan();
+        }
     }
 
-    private void checkPresenceStatus() {
-        String url = apiClient.buildUrl("/api/presence/user/" + authManager.getUserId());
+    private void fetchOnlineUsersCount() {
+        // Correção: Buscar contagem de usuários PRESENTES na sala
+        String url = apiClient.buildUrl("/api/presence/room/" + currentRoom.getRoomId());
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Authorization", authManager.getAuthorizationHeader())
@@ -402,7 +514,7 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
         ApiClient.getSharedHttpClient().newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.e(TAG, "Erro ao verificar presença: " + e.getMessage());
+                // Silencioso
             }
 
             @Override
@@ -411,35 +523,11 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
                 runOnUiThread(() -> {
                     if (response.isSuccessful()) {
                         try {
-                            JSONObject jsonResponse = new JSONObject(responseBody);
-                            
-                            // Verificar qual chave o backend retornou
-                            JSONArray rooms;
-                            if (jsonResponse.has("rooms")) {
-                                rooms = jsonResponse.getJSONArray("rooms");
-                            } else if (jsonResponse.has("present_in_rooms")) {
-                                rooms = jsonResponse.getJSONArray("present_in_rooms");
-                            } else {
-                                rooms = new JSONArray(); // Vazio se não encontrar chave
-                            }
-
-                            boolean foundInRoom = false;
-                            for (int i = 0; i < rooms.length(); i++) {
-                                JSONObject roomJson = rooms.getJSONObject(i);
-                                if (roomJson.getString("room_id").equals(currentRoom.getRoomId())) {
-                                    foundInRoom = roomJson.getBoolean("is_present");
-                                    double confidence = roomJson.getDouble("confidence");
-                                    updatePresenceUI(foundInRoom, confidence);
-                                    break;
-                                }
-                            }
-
-                            if (!foundInRoom) {
-                                updatePresenceUI(false, 0.0);
-                            }
-
+                            JSONObject json = new JSONObject(responseBody);
+                            int count = json.getInt("user_count");
+                            textViewOnlineUsers.setText(count + " usuários online");
                         } catch (JSONException e) {
-                            Log.e(TAG, "Erro JSON ao verificar presença: " + e.getMessage());
+                             // erro
                         }
                     }
                 });
@@ -447,22 +535,39 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
         });
     }
 
+    // Removido checkPresenceStatus() antigo pois agora usamos o Scan Real
+
+
     private void updatePresenceUI(boolean present, double confidence) {
         isPresent = present;
         boolean isCreator = authManager.getUserId() == currentRoom.getCreatorId();
         
+        Log.d(TAG, "DEBUG: updatePresenceUI called. Present=" + present + ", IsCreator=" + isCreator);
+
+        // Prioridade Absoluta ao Criador
         if (isCreator) {
+            // Criador sempre pode criar conversas
+            fabNewConversation.setEnabled(true);
+            fabNewConversation.setAlpha(1.0f); // Visualmente habilitado
+            fabNewConversation.setVisibility(View.VISIBLE); // Garantir visibilidade
+            
+            // Texto informativo especial
             textViewPresenceStatus.setText("★ Criador da Sala (Acesso Total)");
             textViewPresenceStatus.setTextColor(0xFFF39C12); // Laranja/Dourado
-            fabNewConversation.setEnabled(true);
-        } else if (present) {
+            return;
+        }
+
+        // Lógica para usuários normais
+        if (present) {
             textViewPresenceStatus.setText(String.format("✓ Você está dentro (%.0f%%)", confidence * 100));
             textViewPresenceStatus.setTextColor(0xFF27AE60); // Verde
             fabNewConversation.setEnabled(true);
+            fabNewConversation.setAlpha(1.0f);
         } else {
             textViewPresenceStatus.setText("✗ Você está fora da sala");
             textViewPresenceStatus.setTextColor(0xFFE74C3C); // Vermelho
             fabNewConversation.setEnabled(false);
+            fabNewConversation.setAlpha(0.5f); // Visualmente desabilitado
         }
     }
 
@@ -484,10 +589,102 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
         startActivity(intent);
     }
 
+    // Variáveis de ciclo de scan
+    private static final long SCAN_INTERVAL_MS = 10000; // 10 segundos
+    private boolean isActivityActive = false;
+    private Runnable scheduledScanRunnable;
+
     @Override
     protected void onResume() {
         super.onResume();
-        loadConversations(); // Recarregar lista ao voltar para esta tela
+        isActivityActive = true;
+        loadConversations();
+        
+        // Registrar Receiver
+        wifiScanReceiver = new android.content.BroadcastReceiver() {
+            @Override
+            public void onReceive(android.content.Context context, Intent intent) {
+                boolean success = intent.getBooleanExtra(android.net.wifi.WifiManager.EXTRA_RESULTS_UPDATED, false);
+                if (success) {
+                    handleWifiScanSuccess();
+                } else {
+                    Log.e(TAG, "Falha no scan Wi-Fi (Throttling ou Erro)");
+                    if (authManager.getUserId() != currentRoom.getCreatorId()) {
+                         textViewPresenceStatus.setText("Tentando localizar...");
+                    }
+                    scheduleNextScan(); // Tenta de novo em 10s
+                }
+            }
+        };
+        
+        android.content.IntentFilter intentFilter = new android.content.IntentFilter();
+        intentFilter.addAction(android.net.wifi.WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        registerReceiver(wifiScanReceiver, intentFilter);
+
+        // Iniciar ciclo de scan
+        startScanCycle();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        isActivityActive = false;
+        
+        // Parar ciclo
+        if (presenceCheckHandler != null && scheduledScanRunnable != null) {
+            presenceCheckHandler.removeCallbacks(scheduledScanRunnable);
+        }
+        
+        // Desregistrar receiver
+        try {
+            unregisterReceiver(wifiScanReceiver);
+        } catch (IllegalArgumentException e) {
+            // Já desregistrado
+        }
+    }
+
+    private void startScanCycle() {
+        Log.d(TAG, "Iniciando ciclo de scan...");
+        performScan();
+    }
+
+    private void scheduleNextScan() {
+        if (!isActivityActive) return;
+        
+        Log.d(TAG, "Agendando próximo scan em " + SCAN_INTERVAL_MS + "ms");
+        if (scheduledScanRunnable == null) {
+            scheduledScanRunnable = this::performScan;
+        }
+        presenceCheckHandler.removeCallbacks(scheduledScanRunnable); // Remove duplicatas
+        presenceCheckHandler.postDelayed(scheduledScanRunnable, SCAN_INTERVAL_MS);
+    }
+
+    private void performScan() {
+        if (!isActivityActive) return;
+
+        // Se não for criador, mostrar status
+        if (authManager.getUserId() != currentRoom.getCreatorId()) {
+             textViewPresenceStatus.setText("Escaneando...");
+        }
+
+        if (wifiManager != null && wifiManager.isWifiEnabled()) {
+            try {
+                boolean started = wifiManager.startScan();
+                if (!started) {
+                     Log.w(TAG, "StartScan falhou (throttling possivel)");
+                     scheduleNextScan(); // Tenta de novo depois
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Erro ao iniciar scan: " + e.getMessage());
+                scheduleNextScan();
+            }
+        } else {
+             Log.e(TAG, "Wi-Fi desligado ou nulo");
+             scheduleNextScan();
+        }
+        
+        // Atualizar usuários online independente do scan
+        fetchOnlineUsersCount();
     }
 
     @Override
@@ -496,6 +693,13 @@ public class ChatActivity extends AppCompatActivity implements ConversationAdapt
         if (presenceCheckHandler != null && presenceCheckRunnable != null) {
             presenceCheckHandler.removeCallbacks(presenceCheckRunnable);
         }
+        
+        try {
+            if (wifiScanReceiver != null) unregisterReceiver(wifiScanReceiver);
+        } catch (IllegalArgumentException e) {
+            // Already unregistered
+        }
+
         socketManager.leaveRoom(currentRoom.getRoomId());
         socketManager.off("new_conversation", onNewConversationListener);
     }

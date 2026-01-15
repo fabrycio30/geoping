@@ -12,7 +12,7 @@ import okhttp3.OkHttpClient;
 public class ApiClient {
     private static final String PREFS_NAME = "GeoPingApi";
     private static final String KEY_SERVER_URL = "server_url";
-    private static final String DEFAULT_SERVER_URL = "http://192.168.100.56:3000";
+    private static final String DEFAULT_SERVER_URL ="http://192.168.100.56:3000"; // "http://192.168.100.56:3000";
 
     private final SharedPreferences prefs;
     private final OkHttpClient httpClient;

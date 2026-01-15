@@ -196,7 +196,8 @@ router.get('/my-subscriptions', authenticateToken, async (req, res) => {
                 u.username as creator_username,
                 s.status as subscription_status,
                 s.is_blocked,
-                s.subscribed_at
+                s.subscribed_at,
+                (SELECT COUNT(*) FROM subscriptions s2 WHERE s2.room_id = r.id AND s2.status = 'approved') as subscriber_count
              FROM subscriptions s
              JOIN rooms r ON s.room_id = r.id
              LEFT JOIN users u ON r.creator_id = u.id
@@ -627,6 +628,101 @@ router.delete('/:room_id', authenticateToken, async (req, res) => {
             success: false,
             error: 'Erro interno do servidor'
         });
+    }
+});
+
+// Rota para buscar detalhes completos da sala (Gerenciamento)
+router.get('/:room_id/details', authenticateToken, async (req, res) => {
+    const { room_id } = req.params;
+    const user_id = req.user.userId;
+
+    try {
+        const pool = req.app.get('pool');
+
+        // 1. Buscar dados básicos da sala
+        const roomResult = await pool.query(
+            'SELECT * FROM rooms WHERE room_id = $1',
+            [room_id]
+        );
+
+        if (roomResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Sala não encontrada' });
+        }
+
+        const room = roomResult.rows[0];
+
+        // Verificar permissão (apenas criador ou inscritos aprovados)
+        const subResult = await pool.query(
+            'SELECT status FROM subscriptions WHERE room_id = $1 AND user_id = $2',
+            [room.id, user_id]
+        );
+
+        if (room.creator_id !== user_id && (subResult.rows.length === 0 || subResult.rows[0].status !== 'approved')) {
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+
+        // 2. Buscar inscritos e status online
+        // Online = is_present=TRUE e last_seen_at < 45 segundos atrás
+        const subscribersQuery = `
+            SELECT 
+                u.id, 
+                u.username, 
+                s.status,
+                p.is_present,
+                p.confidence,
+                p.last_seen_at,
+                CASE 
+                    WHEN p.is_present = TRUE AND p.last_seen_at > NOW() - INTERVAL '45 seconds' THEN TRUE 
+                    ELSE FALSE 
+                END as is_online
+            FROM subscriptions s
+            JOIN users u ON s.user_id = u.id
+            LEFT JOIN presence p ON p.user_id = u.id AND p.room_id = s.room_id
+            WHERE s.room_id = $1 AND s.status = 'approved'
+            ORDER BY is_online DESC, u.username ASC
+        `;
+        
+        const subscribersResult = await pool.query(subscribersQuery, [room.id]);
+
+        // 3. Buscar metadados do modelo (se treinado)
+        let modelInfo = null;
+        if (room.model_trained) {
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const metadataPath = path.join(__dirname, '..', '..', 'ml', 'models', `${room.wifi_ssid}_metadata.json`);
+                
+                if (fs.existsSync(metadataPath)) {
+                    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+                    modelInfo = {
+                        threshold: metadata.threshold,
+                        training_date: metadata.training_date,
+                        num_samples: metadata.num_samples,
+                        accuracy: metadata.accuracy // se tiver
+                    };
+                }
+            } catch (e) {
+                console.error('Erro ao ler metadados do modelo:', e);
+            }
+        }
+
+        res.json({
+            room: {
+                id: room.id,
+                name: room.room_name,
+                ssid: room.wifi_ssid,
+                code: room.access_code,
+                model_trained: room.model_trained,
+                last_trained_at: room.last_trained_at,
+                subscribers_count: subscribersResult.rows.length
+            },
+            subscribers: subscribersResult.rows,
+            model_info: modelInfo
+        });
+
+    } catch (error) {
+        console.error('Erro ao buscar detalhes da sala:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
 
