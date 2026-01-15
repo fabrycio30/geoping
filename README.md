@@ -1,266 +1,164 @@
-# GeoPing - Plataforma Móvel para Comunicação Delimitada por Proximidade Geográfica
+# GeoPing - Sistema de Chat Indoor com Validação de Presença Geográfica
 
 ## Visão Geral
 
-GeoPing é um sistema completo para detecção de presença indoor baseado em assinatura de redes Wi-Fi:
+O **GeoPing** é uma plataforma móvel de comunicação em tempo real (Chat) que utiliza inteligência artificial para garantir a segurança e a privacidade das conversas. Diferente de chats baseados em GPS (que não funcionam bem em ambientes fechados), o GeoPing utiliza **One-Class Classification (Autoencoder)** baseada em assinaturas de Wi-Fi (Fingerprinting) para determinar se um usuário está fisicamente dentro de uma sala.
 
-- **App Android**:
-  - Coleta de dados Wi-Fi (RSSI + BSSID) e interface para treinamento do modelo padrão da sala. Utilização de arquitetura autoencoder para treinamento (One-Class Classification - Dentro ou fora da sala)
-  - Aplicação Chat para usuários indoor
-- **Backend Node.js**: API REST para persistência de dados e execução de treinamento,  inferencias e chat com usuários indoor.
-- **ML Python**: Autoencoder para classificação One-Class (usuário DENTRO ou FORA da sala)
-- **Database PostgreSQL**: Armazenamento de fingerprints e modelos treinados (ainda não implementado)
+O sistema permite que qualquer usuário crie uma sala virtual associada a um espaço físico, treine um modelo neural personalizado para aquele ambiente e gerencie o acesso de outros usuários.
 
-## Tecnologias
+## Principais Funcionalidades
 
-### Mobile
+### 1. Sistema de Autenticação e Gestão
+*   Login e Registro de usuários.
+*   Criação de salas virtuais vinculadas a redes Wi-Fi (SSID).
+*   Gestão de assinaturas: Usuários solicitam entrada e o criador aprova/rejeita.
+*   **Privilégio de Criador:** O dono da sala tem acesso irrestrito (God Mode) e ferramentas de gerenciamento.
 
-- Android Native (Java)
+### 2. Inteligência Artificial (Core)
+*   **Coleta de Dados:** Interface dedicada para escanear o ambiente e coletar amostras de sinal Wi-Fi (RSSI + BSSID).
+*   **Treinamento On-Device/Server:** O usuário inicia o treinamento do modelo diretamente pelo App. O backend processa os dados usando TensorFlow/Keras.
+*   **Validação de Presença:**
+    *   O sistema utiliza um **Autoencoder** treinado apenas com dados "normais" (dentro da sala).
+    *   Durante o chat, o App envia scans Wi-Fi periódicos para o servidor.
+    *   O modelo calcula o erro de reconstrução; se for baixo, o usuário está **DENTRO**; se alto, está **FORA**.
+
+### 3. Chat em Tempo Real
+*   Comunicação via Socket.io.
+*   **Bloqueio Geográfico:** Usuários (exceto o criador) só podem enviar mensagens ou criar tópicos se o sistema validar que estão fisicamente presentes na sala.
+*   Feedback visual de presença ("Você está dentro" / "Você está fora") com nível de confiança.
+*   Contador de usuários online e presentes na sala.
+
+### 4. Flexibilidade de Desenvolvimento
+*   **Configuração Dinâmica de IP:** Permite alterar o endereço do servidor backend diretamente na tela de login, facilitando testes em diferentes redes (Casa, Universidade, Laboratório) sem recompilar o App.
+
+---
+
+## Tecnologias Utilizadas
+
+### Mobile (Android)
+*   **Linguagem:** Java (Android Nativo)
+*   **Comunicação:** Retrofit (REST API) e Socket.io Client (Real-time)
+*   **UI:** Material Design, RecyclerViews, MPAndroidChart (Gráficos de treino)
 
 ### Backend
-
-- Node.js + Express
-- PostgreSQL com JSONB
-- Socket.io
+*   **Runtime:** Node.js
+*   **Framework:** Express.js
+*   **Real-time:** Socket.io
+*   **Banco de Dados:** PostgreSQL (com suporte a JSONB para armazenar fingerprints)
 
 ### Machine Learning
+*   **Linguagem:** Python 3.11
+*   **Libraries:** TensorFlow/Keras, Scikit-learn, Pandas, NumPy
+*   **Modelo:** Autoencoder (Rede Neural para detecção de anomalias/One-Class Classification)
 
-- Python 3.11
-- TensorFlow/Keras (Autoencoder)
-- Scikit-Learn (pré-processamento)
-- Pandas/NumPy (manipulação de dados)
-- Matplotlib (visualização)
+---
 
-## Instalação e Especificações Técnicas
+## Guia de Instalação e Execução
 
-### 1. Database (PostgreSQL)
+### Pré-requisitos
+*   Node.js 16+
+*   Python 3.11+
+*   PostgreSQL 14+
+*   Android Studio
+*   Dispositivo Android Físico (Recomendado para acesso ao Wi-Fi)
 
+### 1. Banco de Dados
 ```bash
-# Criar banco e rodar schema
-psql -U postgres
-CREATE DATABASE geoping_db;
-\c geoping_db
-\i database/init.sql
+# Criar banco e rodar o script de inicialização completo
+psql -U postgres -c "CREATE DATABASE geoping_db;"
+psql -U postgres -d geoping_db -f database/init_complete.sql
 ```
 
 ### 2. Backend
-
 ```bash
 cd backend
 npm install
 
-# Configurar .env
-echo "DB_USER=postgres" > .env
-echo "DB_PASSWORD=sua_senha" >> .env
-echo "DB_HOST=localhost" >> .env
-echo "DB_PORT=5432" >> .env
-echo "DB_DATABASE=geoping_db" >> .env
+# Crie um arquivo .env na pasta backend com as configurações do banco:
+# DB_USER=postgres
+# DB_PASSWORD=sua_senha
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_DATABASE=geoping_db
+# JWT_SECRET=sua_chave_secreta
 
 npm start
+# O servidor rodará na porta 3000
 ```
 
-### 3. Machine Learning
-
+### 3. Módulo de ML (Python)
 ```bash
 cd ml
 python -m venv venv
-venv\Scripts\activate  # Windows
+# Ativar venv:
+# Windows: venv\Scripts\activate
+# Linux/Mac: source venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
-### 4. Android App
+### 4. App Android
+1.  Abra a pasta `android` no Android Studio.
+2.  Conecte seu dispositivo Android na mesma rede Wi-Fi do computador.
+3.  Compile e instale o App (`Shift + F10`).
+4.  **Configuração Inicial:**
+    *   Na tela de Login, identifique o campo "URL do Servidor".
+    *   Insira o IP da sua máquina: `http://192.168.X.X:3000`
+    *   Clique em ENTRAR.
 
-1. Abrir pasta `android/` no Android Studio
-2. Build & Run
-3. Configurar:
-   - Nome da sala: `minha_sala`
-   - URL do servidor: `http://<IP_DO_PC>:3000`
-   - Intervalo: `5000` ms
+---
 
-## Funcionalidades
+## Fluxo de Utilização (Roteiro de Teste)
 
-### Coleta de Dados
+1.  **Criar Sala:**
+    *   Faça login.
+    *   Vá na aba "Minhas Salas" -> Botão "+".
+    *   Dê um nome e insira o SSID exato da rede Wi-Fi do local.
 
-- Escaneamento automático de redes Wi-Fi (no mínimo 30 pontos)
-- Envio das amostras coletadas para backend/banco de dados
-- Log detalhado em tempo real da coleta
-- Contador de amostras e redes
+2.  **Coletar Dados (Fingerprinting):**
+    *   Entre na sala criada -> Clique em "GERENCIAR" -> "Coletar Dados".
+    *   Caminhe pelo ambiente enquanto o App coleta as amostras.
+    *   Recomenda-se pelo menos 50 a 100 amostras para um bom resultado.
 
-### Treinamento
+3.  **Treinar Modelo:**
+    *   Após a coleta, clique em "TREINAR MODELO".
+    *   O servidor processará os dados e gerará o arquivo `.h5` do modelo.
+    *   Ao finalizar, o status da sala mudará para "Modelo: Treinado".
 
-- Botão integrado no app
-- Validação de quantidade mínima de amostras (30)
-- Logs de treinamento em tempo real
-- Exibição de resultados gráficos
+4.  **Testar o Chat:**
+    *   Volte e clique em "ENTRAR" na sala.
+    *   O App começará a validar sua presença.
+    *   Se estiver no local (e o modelo reconhecer), o status ficará Verde ("Você está dentro") e o chat será liberado.
+    *   Se sair do local, o status ficará Vermelho e o chat será bloqueado.
 
-### Resultados do Treinamento
-
-- Resumo: amostras, BSSIDs, limiar
-- Interpretação: como funciona o modelo e tal
-- Gráficos: histórico de loss e distribuição de erros
-- Detalhes técnicos: arquitetura, hiperparâmetros, cálculo do limiar
-
-## Arquitetura do Modelo
-
-```
-Input (N features) 
-    ↓
-Encoder: 64 → 32 neurônios
-    ↓
-Espaco Latente: 16 dimensões
-    ↓
-Decoder: 32 → 64 neurônios
-    ↓
-Output (N features)
-```
-
-### Hiperparâmetros Padrão
-
-- Épocas: 100
-- Batch size: 32
-- Validation split: 20%
-- Ativação: ReLU
-- Otimizador: Adam
-- Loss: MSE (Mean Squared Error)
-
-### Threshold
-
-- Método: IQR (Interquartile Range)
-- Fórmula: `threshold = Q3 + 1.5 × IQR`
-- Robusto contra outliers
+---
 
 ## Estrutura do Projeto
 
 ```
-geoping_v2/
+geoping/
 │
-├── backend/
-│   ├── server.js                  // Express + Socket.io
-│   ├── routes/
-│   │   ├── auth.js                // Registro/Login
-│   │   ├── rooms.js               // CRUD de salas
-│   │   ├── presence.js            // Atualização de presença
-│   │   └── messages.js            // Conversas e mensagens
-│   ├── middleware/
-│   │   └── auth.js                // Autenticação JWT
-│   ├── package.json               // Dependências
-│   └── .env                       // Variáveis de ambiente
+├── android/                 # Código fonte do App Android
+│   └── app/src/main/java/com/geoping/app/
+│       ├── activities/      # Telas (Login, Chat, Coleta, etc.)
+│       ├── adapters/        # Listas (Salas, Mensagens)
+│       └── utils/           # Clientes HTTP, Socket e Auth
 │
-├── database/
-│   ├── init.sql                   // Tabela wifi_training_data
-│   ├── schema_v2.sql              // Tabelas de usuários/salas/mensagens
-│   └── init_complete.sql          // Schema completo unificado
+├── backend/                 # Servidor Node.js
+│   ├── server.js            # Entry point
+│   ├── routes/              # Rotas da API (auth, rooms, presence)
+│   └── middleware/          # Autenticação JWT
 │
-├── ml/
-│   ├── train_autoencoder.py      // Treinamento do modelo
-│   ├── predict.py                 // Predição offline
-│   ├── predict_realtime.py        // Predição em tempo real (stdin/stdout)
-│   ├── requirements.txt           // Dependências Python
-│   └── models/                    // Modelos treinados (.h5, .pkl, .json)
+├── database/                # Scripts SQL
+│   └── init_complete.sql    # Schema do banco
 │
-├── android/
-│   └── app/src/main/
-│       ├── AndroidManifest.xml    // Permissões e activities
-│       ├── java/com/geoping/
-│       │   ├── app/
-│       │   │   ├── LoginActivity.java              //
-│       │   │   ├── RegisterActivity.java           //
-│       │   │   ├── MainActivity.java               //
-│       │   │   ├── CreateRoomActivity.java         //
-│       │   │   ├── SearchRoomActivity.java         //
-│       │   │   ├── RoomDataCollectionActivity.java //
-│       │   │   ├── RoomTrainingResultsActivity.java//
-│       │   │   ├── RoomManagementActivity.java     //
-│       │   │   ├── ChatActivity.java               //
-│       │   │   ├── ConversationActivity.java       //
-│       │   │   ├── models/
-│       │   │   │   ├── Room.java                   //
-│       │   │   │   ├── Conversation.java           //
-│       │   │   │   └── Message.java                //
-│       │   │   ├── adapters/
-│       │   │   │   ├── RoomAdapter.java            //
-│       │   │   │   ├── SearchResultAdapter.java    //
-│       │   │   │   ├── ConversationAdapter.java    //
-│       │   │   │   └── MessageAdapter.java         //
-│       │   │   ├── utils/
-│       │   │   │   ├── AuthManager.java            //
-│       │   │   │   ├── ApiClient.java              //
-│       │   │   │   └── SocketManager.java          //
-│       │   │   └── services/
-│       │   │       └── PresenceService.java        //
-│       │   └── datacollection/
-│       │       ├── DataCollectionActivity.java     // (Modo Dev)
-│       │       └── TrainingResultsActivity.java    // (Modo Dev)
-│       └── res/
-│           └── layout/
-│               ├── activity_login.xml              //
-│               ├── activity_register.xml           //
-│               ├── activity_main.xml               //
-│               ├── activity_create_room.xml        //
-│               ├── activity_search_room.xml        //
-│               ├── activity_room_data_collection.xml //
-│               ├── activity_room_training_results.xml //
-│               ├── activity_room_management.xml    //
-│               ├── activity_chat.xml               //
-│               ├── activity_conversation.xml       //
-│               ├── item_room.xml                   //
-│               ├── item_search_result.xml          //
-│               ├── item_conversation.xml           //
-│               └── item_message.xml                //
+├── ml/                      # Scripts Python
+│   ├── train_autoencoder.py # Script de treinamento
+│   ├── predict_realtime.py  # Script de inferência (usado pelo backend)
+│   └── models/              # Arquivos de modelos salvos (.h5, .json)
 │
-└── Doc
+└── doc/                     # Documentação do projeto
 ```
 
-## Procedimentos para a utilização
-
-### 1. Coleta de Dados
-
-1. Abrir app Android
-2. Preencher nome da sala e URL do servidor
-3. Clicar em "INICIAR COLETA"
-4. Aguardar 30+ coletas
-5. Clicar em "PARAR COLETA"
-
-### 2. Treinamento
-
-1. Clicar em "TREINAR MODELO DA SALA"
-2. Aguardar processo (exibe logs em tempo real)
-3. Visualizar resultados gráficos
-4. Salvar o modelo para inferência
-
-### 3. Inferência (Futura)
-
-- Usar `ml/predict.py` para classificar novos scans
-- Retorna a decisão: DENTRO ou FORA da sala
-
-## Requisitos
-
-### Hardware
-
-- Android 8.0+ (API 26+)
-- Servidor com PostgreSQL (Estamos utilizando um servidr localmente para os testes)
-
-### Software
-
-- Node.js 16+
-- Python 3.11
-- PostgreSQL 14+
-- Android Studio (utilizando para compilar app). Utilizando smartphones para os testes finais dada as limitações dos emuladores.
-
-## Versões
-
-### v2.0 (Atual)
-
-- Sistema com modelos completo de coleta e treinamento
-- Integração app-backend-ML
-- Exibição de resultados com detalhes técnicos
-
-### v1.0 (Antiga - branch `backup-versao-antiga`)
-
-- Protótipo inicial para os milestones anteriores
-- Chat com detecção de salas por Wi-Fi
-- Interface básica
-
 ## Licença
-
-ainda não definida
+Projeto desenvolvido para fins acadêmicos - UFMA.
